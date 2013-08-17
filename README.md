@@ -3,11 +3,11 @@ Wikipedia
 &copy; Toto Azéro, 2010 - 2013<br />
 Scripts disponibles sous licence GNU GPLv3 (sauf indication contraire)<br />
 Scripts distributed under the terms of the GNU GPLv3 license<br />
-	http://www.gnu.org/licenses/gpl.html
+	https://www.gnu.org/licenses/gpl.html
 	
 ---------
 Scripts utilisés par ZéroBot (https://fr.wikipedia.org/User:ZéroBot), développés grâce à pywikipedia (et sa branche rewrite), et qui nécessitent donc ce dernier pour pouvoir fonctionner.
-Voir http://www.mediawiki.org/wiki/Pywikipediabot
+Voir https://www.mediawiki.org/wiki/Pywikipediabot.
 
 
 Voir aussi :
