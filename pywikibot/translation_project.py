@@ -5,7 +5,7 @@
 # (C) Nakor
 # (C) Toto Azéro, 2011
 #
-# Distributed under the terms of the MIT license.
+# Distribué sous les terms de la licence MIT.
 # Distributed under the terms of the MIT license.
 #
 

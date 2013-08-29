@@ -6,8 +6,8 @@ Scripts distributed under the terms of the GNU GPLv3 license (unless otherwise s
 	https://www.gnu.org/licenses/gpl.html
 	
 ---------
-Scripts utilisés par ZéroBot (https://fr.wikipedia.org/User:ZéroBot), développés grâce à pywikipedia (et sa branche rewrite), et qui nécessitent donc ce dernier pour pouvoir fonctionner.
-Voir https://www.mediawiki.org/wiki/Pywikipediabot.
+Scripts utilisés par ZéroBot (https://fr.wikipedia.org/User:ZéroBot), développés grâce au framework pywikipedia, et qui nécessitent donc ce dernier pour pouvoir fonctionner.
+Voir https://www.mediawiki.org/wiki/Pywikipediabot pour plus d'informations sur le framework.
 
 
 Voir aussi :
