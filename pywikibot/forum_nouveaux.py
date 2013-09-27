@@ -6,6 +6,7 @@ Avertissement des nouveaux ayant reçu une réponse à leur question sur le [[WP
 et sur [[WP:Forum des nouveaux/relecture]].
 
 Dernières modifications :
+* 0568 : changement modèle réponse : [[Utilisateur:ZéroBot/Forum des nouveaux/Réponse]]
 * 0550 : précisions logs
 * 0549 : traitement de plusieurs pages, recherche du demandeur améliorée
 		 (avec détection d'un éventuel titre du type "Question déposée par …"
@@ -19,7 +20,8 @@ Dernières modifications :
 # Distributed under the terms of the GNU GPLv3 license
 # http://www.gnu.org/licenses/gpl.html
 #
-__version__ = '$Id: forum_nouveaux.py 0550 2013-08-11 13:30:52 (CEST) Toto Azéro $'
+__version__ = '0568'
+__date__ = '2013-08-22 19:00:45 (CEST)'
 #
 import pywikibot, complements
 import re, urllib, _mysql
@@ -53,7 +55,11 @@ class AnalyserBot:
 		if not self.history:
 			pywikibot.output(u"Erreur : aucun historique existant !")
 			return
-
+		
+		self.id = ''
+		if main_page.title().split("/")[-1] != u"Wikipédia:Forum des nouveaux":
+			 self.id = main_page.title().split("/")[-1]
+		
 		
 		# Les variables suivantes contiennent chacune différentes
 		# informations, révision après révision de l'historique.
@@ -119,7 +125,7 @@ class AnalyserBot:
 			
 	def make_database(self):
 		if not self.database:
-			self.database = _mysql.connect(host='sql', db='u_totoazero', read_default_file="/home/totoazero/.my.cnf")
+			self.database = _mysql.connect(host='tools-db', db='p50380g50643__totoazero', read_default_file="/data/project/totoazero/replica.my.cnf")
 			pywikibot.output(u"Database initialized.")
 			
 	def get_oldid(self):
@@ -269,7 +275,7 @@ class AnalyserBot:
 		date = u"le %s %s à %s" % (ts.strftime(u"%d"), self.les_mois[int(ts.strftime(u"%m")) - 1], ts.strftime(u"%H:%M"))
 		
 		#warning_message = u"{{subst:Wikipédia:Forum des nouveaux/Réponse|%s|~~~~|user=%s|date=%s (UTC)|oldid=%s}}" % (titre_section_MediaWiki, user_text, date, newid)
-		warning_message = u"\n\n{{subst:Wikipédia:Forum des nouveaux/Réponse|%s|~~~~|user=%s|oldid=%s}}" % (titre_section_MediaWiki, user.name(), newid)
+		warning_message = u"\n\n{{subst:Utilisateur:ZéroBot/Forum des nouveaux/Réponse|%s|~~~~|user=%s|oldid=%s|id=%s}}" % (titre_section_MediaWiki, user.name(), newid, self.id)
 		
 		pywikibot.output(warning_message)
 		text += warning_message
@@ -318,4 +324,5 @@ if __name__ == '__main__':
 			pywikibot.output(u"Erreur : aucun message n'a pu être laissé à Frakir ([[fr:User talk:Frakir]]).")
 		raise
 	finally:
+		pywikibot.output(u"\n----------------------------\n")
 		pywikibot.stopme()

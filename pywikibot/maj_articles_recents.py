@@ -8,24 +8,27 @@ Ce bot met à jour les modèles {{Articles récents}} sur fr.wikipedia.
 This bot updates the {{Articles récents}} templates on fr.wikipedia.
 
 Dernières modifications :
-*
+* 1754 : ajout du paramètre 'delai'
 """
 #
-# (C) Toto Azéro, 2011-2012
+# (C) Toto Azéro, 2011-2013
 #
 # Distribué sous licence GNU GPLv3
 # Distributed under the terms of the GNU GPLv3 license
 # http://www.gnu.org/licenses/gpl.html
 #
-__version__ = '$Id: maj_articles_recents.py 1589+ 2013-05-01 16:35:52 (CEST) Toto Azéro $'
+__version__ = '$Id: maj_articles_recents.py 1754 2013-08-07 20:40:27 (CEST) Toto Azéro $'
 #
 import almalog2
 import pywikibot
 from pywikibot import catlib, pagegenerators
 import re, time
-from datetime import datetime
+import datetime
 
 def main():
+	global test
+	global dry
+		
 	dry = False # À activer seulement pour les tests
 	test = False # À activer seulement pour tester le script sur une seule page
 	ns_test = False
@@ -76,6 +79,7 @@ def main():
 		m2 = re.search("\| *nbMax *= *(?P<nbMax>[^\n]+)", text)
 		m3 = re.search("\| *namespaces *= *(?P<namespaces>[^\n]+)", text)
 		m4 = re.search("\| *recurse *= *(?P<recurse>[^\n]+)", text)
+		m5 = re.search("\| *delai *= *(?P<delai>[-0-9]+)", text)
 		if m:
 			pywikibot.output(u'* résultat de la recherche = %s' % m.group())
 
@@ -110,6 +114,11 @@ def main():
 				pywikibot.output(u'(recurse_test is ON)')
 				recurse = recurse_test_value
 			pywikibot.output(u'* recurse = %s' % recurse)
+			
+			delai_creation = 0
+			if m5:
+				delai_creation = int(m5.group('delai'))
+			pywikibot.output(u'* delai_creation = %i' % delai_creation)
 				
 		else: #Si le modèle n'a pas été trouvé sur la page examinée
 			pywikibot.output(u"aucun modèle {{Articles récents}} détecté sur la page %s" % main_page.title())
@@ -188,8 +197,8 @@ def main():
 		# catégorie après la dernière modification de la page
 		# contenant le modèle {{Articles récents}}.
 		#list_new.extend([page for page in site.categorymembers(cat, starttime=timestamp, sortby='timestamp', namespaces=[0])])
-		#pywikibot.output(str([page for page in cat.articles(starttime=timestamp, sortby='timestamp', namespaces=namespaces, recurse=recurse)]))
 		list_new.extend([page for page in cat.articles(starttime=timestamp, sortby='timestamp', namespaces=namespaces, recurse=recurse)])
+		list_new.reverse()
 		#print list_new
 		
 		# NB : exception_maj peut être passer à True si un article
@@ -210,11 +219,48 @@ def main():
 		cat_info = site.categoryinfo(cat)
 		pywikibot.output(cat_info)
 		
-		for titre_page in list_new:
+		list_new_old = list()
+		list_new_old.extend(list_new)
+		
+		#for titre_page in list_new_old:
+		#	print titre_page
+		
+		for titre_page in list_new_old:
 			# NB : titre_page est du type [[Nom de la page]]
-			pywikibot.output(u"Nouvelle page : %s" % titre_page)
-			if not titre_page in listeRecents:
-				pywikibot.output("phase 1")
+			pywikibot.output("\n----------")
+			pywikibot.output(u"Page récemment ajoutée : %s" % titre_page)
+			if not titre_page in listeRecents:				
+				if delai_creation:
+					# Délai imposé (en heures) depuis la création de l'article,
+					# au-delà duquel l'article récemment ajouté à la catégorie
+					# ne doit pas figurer dans la liste.
+					# Exemple :  delai_creation = 24
+					# 	 => le bot liste uniquement les articles créés il y
+					# 		a moins de 24h.
+					page = pywikibot.Page(site, titre_page[2:-2])
+					
+					# NB : date_creation et date_plus_petite_requise
+					#      sont du type pywikibot.Timestamp
+					date_creation = page.getVersionHistory()[-1][1]
+					print date_creation
+					
+					if delai_creation > 0:
+						date_plus_petite_requise = pywikibot.Timestamp.now() - datetime.timedelta(hours=delai_creation)
+					elif delai_creation == -1:
+						# 'timestamp' a été défini plus haut comme étant la date de dernière
+						# édition du bot sur la page.
+						date_plus_petite_requise = timestamp
+					
+					print date_plus_petite_requise
+					
+					if date_plus_petite_requise > date_creation:
+						pywikibot.output(u"Vérification du délai : Non")	
+						pywikibot.output(u"La page ne satisfait pas le délai depuis la création imposé.")
+						list_new.remove(titre_page)
+						continue
+					else:
+						pywikibot.output(u"Vérification du délai : OK")
+				
 				precisions_comment2 += (u"; + %s" % titre_page)
 			else:
 				# Si l'article se trouve déjà dans la liste listeRecents
@@ -235,9 +281,6 @@ def main():
 		
 		# Pour compléter le résumé d'édition
 		comment = comment % {'nombre_articles': cat_info['pages'], 'precision_pages': precisions_comment}
-		#####################
-		
-		#list_new.sort()
 		
 		#####################
 		### Création de la liste des articles récents
@@ -277,18 +320,11 @@ def main():
 		
 		# Mise à jour de la liste des articles récents (listeRecents)
 		new_text = re.sub(re.compile(u'%s.*%s' % (matchDebut1, matchFin1), re.S), liste_nouveaux_recents_string, new_text)
-		
-		# Mise à jour de la liste des articles de la catégorie (listeCategorie)
-		#new_text = re.sub(re.compile(u'%s.*%s' % (matchDebut2, matchFin2), re.S), listeCategorie_string_new, new_text)
-		
+				
 		pywikibot.output(new_text)
 		
-		#pywikibot.showDiff(main_page.get(), new_text)
 		pywikibot.output(u'Commentaire: %s' % comment)
 		
-		#choice = pywikibot.inputChoice(u'Do you want to accept these changes?', ['Yes', 'No'], ['y', 'N'], 'N')
-		#if choice == 'y':
-		#	main_page.put(new_text, comment = comment)
 		if not dry:
 			main_page.put(new_text, comment = comment)
 		else:
@@ -297,10 +333,11 @@ def main():
 
 
 if __name__ == '__main__':
-    try:
-        main()
-    except Exception, myexception:
-        almalog2.error(u'maj_articles_recents', u'%s %s'% (type(myexception), myexception.args))
-        raise
-    finally:
-        pywikibot.stopme()
+	try:
+		main()
+	except Exception, myexception:
+		if not (test or dry):
+			almalog2.error(u'maj_articles_recents', u'%s %s'% (type(myexception), myexception.args))
+		raise
+	finally:
+		pywikibot.stopme()
