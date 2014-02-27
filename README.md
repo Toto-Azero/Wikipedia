@@ -1,6 +1,6 @@
 Wikipedia
 =========
-&copy; Toto Azéro, 2010 - 2013<br />
+&copy; Toto Azéro, 2010 - 2014<br />
 Scripts disponibles sous licence GNU GPLv3 (sauf indication contraire)<br />
 Scripts distributed under the terms of the GNU GPLv3 license (unless otherwise specified)	<br />
 	https://www.gnu.org/licenses/gpl.html
