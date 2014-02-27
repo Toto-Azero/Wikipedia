@@ -19,17 +19,17 @@ Différences avec la génération 1.0 :
 NB : La suppression des requêtes traitées reste toujours possible.
 
 Dernières corrections :
-- 
+* 3235 : Correction erreur archivage 1ère semaine de l'année
 """
 
 #
-# (C) Toto Azéro, 2011-2013
+# (C) Toto Azéro, 2011-2014
 #
 # Distribué sous licence GNU GPLv3
 # Distributed under the terms of the GNU GPLv3 license
 # http://www.gnu.org/licenses/gpl.html
 #
-__version__ = '$Id: sysops_archives_new.py 3183 2012-10-11 17:41:02 (CEST) Toto Azéro $'
+__version__ = '$Id: sysops_archives_new.py 3235 2014-01-03 20:18:58 (CET) Toto Azéro $'
 #
 
 import almalog2
@@ -501,7 +501,10 @@ class TreatementBot:
 				
 				pywikibot.output('_________ week_number : %i _________' % week_number)
 				
-				archive_page = pywikibot.Page(self.site, u"%s/%s%i/Semaine %i" % (self.main_page.title(asLink = False), self.archivePrefix, now.isocalendar()[0], week_number))
+				if week_number == 52: # Nouvelle année
+					archive_page = pywikibot.Page(self.site, u"%s/%s%i/Semaine %i" % (self.main_page.title(asLink = False), self.archivePrefix, now.isocalendar()[0]-1, week_number))
+				else:
+					archive_page = pywikibot.Page(self.site, u"%s/%s%i/Semaine %i" % (self.main_page.title(asLink = False), self.archivePrefix, now.isocalendar()[0], week_number))
 				
 				if archive_page.exists():
 					new_text = archive_page.get()
