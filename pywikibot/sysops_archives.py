@@ -13,7 +13,8 @@ TODO (A):
 	- faire des fonctions pour les morceaux de codes en doubles (ou plus ?)
 	
 Dernières corrections :
-- 2853 : correction d'un problème causé par la présence d'un antislash suivi d'un nombre dans la page
+* 2855 : gestion de la date (type 7h53 en plus de 7:53)
+* 2853 : correction d'un problème causé par la présence d'un antislash suivi d'un nombre dans la page
 """
 
 #
@@ -23,7 +24,7 @@ Dernières corrections :
 # Distributed under the terms of the GNU GPLv3 license
 # http://www.gnu.org/licenses/gpl.html
 #
-__version__ = '$Id: sysops_archives.py 2853 2013-07-05 18:23:52 (CEST) Toto Azéro $'
+__version__ = '$Id: sysops_archives.py 2855 2013-12-27 13:07:52 (CET) Toto Azéro $'
 #
 
 import almalog2
@@ -117,8 +118,8 @@ class TreatementBot:
 			
 		elif raccourci == 'drp':
 			self.dict = {
-			'archiver': {'acceptees': False, 'refusees': True},
-			'supprimer': {'acceptees': True, 'refusees': False},
+			'archiver': {'acceptees': True, 'refusees': True},
+			'supprimer': {'acceptees': False, 'refusees': False},
 			'delai': {'classement': 24, 'archivage': 7*24, 'suppression': 7*24} # En heures,
 			}
 			
@@ -203,7 +204,7 @@ class TreatementBot:
 		u"décembre": "12"
 		}
 		
-		self.match_date = re.compile(u"(?P<day>[0-9]+) *(?P<month>[^ ]+) *(?P<year>20[0-9]{2}) *à *(?P<hours>[0-9]{2}):(?P<minutes>[0-9]{2})")
+		self.match_date = re.compile(u"(?P<day>[0-9]+) *(?P<month>[^ ]+) *(?P<year>20[0-9]{2}) *à *(?P<hours>[0-9]{2})[h:](?P<minutes>[0-9]{2})")
 		self.match_titre_requete = re.compile(u"(\n|^)== *([^=].+[^=]) *==")
 	
 	def analyse_section(self, section, template_title = None):

@@ -10,7 +10,7 @@
 # http://www.gnu.org/licenses/gpl.html
 #
 
-__version__ = '$Id: unblock.py 1521 2013-07-11 12:04:11 (CEST) Toto Azéro $'
+__version__ = '$Id: unblock.py 1535 2013-08-30 11:45:48 (CEST) Toto Azéro $'
 
 import almalog2
 import pywikibot
@@ -21,7 +21,7 @@ def get_text():
 	site = pywikibot.Site()
 	pagename = u'Wikipédia:Requête aux administrateurs'
 	page=pywikibot.Page(site, pagename)
-
+	
 	return page.get()
 
 def put_text(text, usernames_blocked):
@@ -51,12 +51,12 @@ def check_open_section(username):
 	match = u"== Demande de déblocage de %s ==" % username
 	try:
 		if (match in text) or debug:
-			if debug:
-				text = u"""== Demande de déblocage de Toto Azéro ==
-{{RA début|traitée=|date=29 mars 2013 à 17:36 (CET)}}
-Test
-{{RA fin}}
-"""
+#			if debug:
+#				text = u"""== Demande de déblocage de Toto Azéro ==
+#{{RA début|traitée=|date=29 mars 2013 à 17:36 (CET)}}
+#Test
+#{{RA fin}}
+#"""
 			text = text[text.index(match):]
 			text = text[:text.index(u"{{RA fin}}")]
 			templates = textlib.extract_templates_and_params(text)
@@ -121,8 +121,7 @@ def main():
 		if (blocked or debug) and not check_open_section(username):
 			pywikibot.output("%s is blocked" % username)
 			if not database:
-				#database=MySQLdb.connect(host='sql', db='u_totoazero_unblocks', read_default_file="/home/totoazero/.my.cnf", use_unicode=True)
-				database=_mysql.connect(host='sql', db='u_totoazero_unblocks', read_default_file="/home/totoazero/.my.cnf")
+				database = _mysql.connect(host='tools-db', db='p50380g50643__totoazero', read_default_file="/data/project/totoazero/replica.my.cnf")
 			sqlusername=re.sub(u'\'', u'\'\'', username)
 			database.query('SELECT date FROM unblocks WHERE username=\'%s\'' % sqlusername.encode('utf-8'))
 			results=database.store_result()
@@ -165,8 +164,7 @@ def main():
 			pywikibot.output("%s is blocked but a request has already been made"  % username)
 	
 	if not database:
-		#database=MySQLdb.connect(host='sql', db='u_totoazero_unblocks', read_default_file="/home/totoazero/.my.cnf", use_unicode=True)
-		database=_mysql.connect(host='sql', db='u_totoazero_unblocks', read_default_file="/home/totoazero/.my.cnf")
+		database = _mysql.connect(host='tools-db', db='p50380g50643__totoazero', read_default_file="/data/project/totoazero/replica.my.cnf")
 	database.query('SELECT username FROM unblocks')
 	results=database.store_result()
 	result=results.fetch_row(maxrows=0)
@@ -185,6 +183,7 @@ if __name__ == '__main__':
 		debug = False
 		main()
 	except Exception, myexception:
+		pywikibot.output(u'%s %s'% (type(myexception), myexception.args))
 		if not debug:
 			almalog2.error(u'unblock', u'%s %s'% (type(myexception), myexception.args))
 		raise

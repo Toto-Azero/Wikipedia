@@ -6,6 +6,7 @@ Avertissement des nouveaux ayant reçu une réponse à leur question sur le [[WP
 et sur [[WP:Forum des nouveaux/relecture]].
 
 Dernières modifications :
+* 0568+ : vérification de la sauvegarde de l'oldid
 * 0568 : changement modèle réponse : [[Utilisateur:ZéroBot/Forum des nouveaux/Réponse]]
 * 0550 : précisions logs
 * 0549 : traitement de plusieurs pages, recherche du demandeur améliorée
@@ -20,7 +21,7 @@ Dernières modifications :
 # Distributed under the terms of the GNU GPLv3 license
 # http://www.gnu.org/licenses/gpl.html
 #
-__version__ = '0568'
+__version__ = '0568+'
 __date__ = '2013-08-22 19:00:45 (CEST)'
 #
 import pywikibot, complements
@@ -133,8 +134,10 @@ class AnalyserBot:
 		pywikibot.output(u"Getting oldid with id %s." % self.id_sql.decode('utf-8'))
 		self.database.query('SELECT * FROM oldid_forum_nouveaux WHERE id=\'%s\'' % self.id_sql)
 		results = self.database.store_result()
+		pywikibot.output(results)
 		if results:
 			oldid=results.fetch_row(maxrows=0)
+			pywikibot.output(oldid)
 			if len(oldid):
 				oldid = int(oldid[0][0])
 				pywikibot.output('Found oldid %i' % oldid)
@@ -149,8 +152,17 @@ class AnalyserBot:
 		@type oldid : int
 		"""
 		self.make_database()
+		pywikibot.output("Deleting entry for id '%s'" % self.id_sql)
 		self.database.query('DELETE FROM oldid_forum_nouveaux WHERE id=\'%s\'' % self.id_sql)
-		self.database.query('INSERT INTO oldid_forum_nouveaux VALUES ("%i", CURRENT_TIMESTAMP, \'%s\')' % (oldid, self.id_sql))
+		
+		results = None
+		while not results:
+			self.make_database()
+			pywikibot.output("Saving oldid %i for id '%s'" % (oldid, self.id_sql))
+			self.database.query('INSERT INTO oldid_forum_nouveaux VALUES ("%i", CURRENT_TIMESTAMP, \'%s\')' % (oldid, self.id_sql))
+			self.database.query('SELECT * FROM oldid_forum_nouveaux WHERE id=\'%s\'' % self.id_sql)
+			results = self.database.store_result()
+		
 		pywikibot.output(u"Last oldid analyzed (%i) saved into SQL database." % oldid)
 		
 	def analyse(self, history):
@@ -293,18 +305,19 @@ class AnalyserBot:
 		self.save_oldid(self.history[-1][0])
 
 def warn_Frakir():
-	check_page = pywikibot.Page(site, u"Utilisateur:ZéroBot/warned")
-	check_chain = u"true"
-	if check_page.get() == check_chain:
-		return 2
-	
-	pdD_Frakir = pywikibot.Page(site, u"Discussion utilisateur:Frakir")
-	text = pdD_Frakir.get() + u"\n\n== Houston… on a un problème ! ==\nJ'ai rencontré une erreur et n'ai pas pu effectuer correctement mon travail d'avertissement concernant le [[WP:Forum des nouveaux]]. ~~~~"
-	pdD_Frakir.put(text, comment=u"Houston… on a un problème !", minorEdit=False)
-	
-	check_page.put(check_chain, comment="", minorEdit=False)
-	
-	return 1
+	pass
+#	check_page = pywikibot.Page(site, u"Utilisateur:ZéroBot/warned")
+#	check_chain = u"true"
+#	if check_page.get() == check_chain:
+#		return 2
+#	
+#	pdD_Frakir = pywikibot.Page(site, u"Discussion utilisateur:Frakir")
+#	text = pdD_Frakir.get() + u"\n\n== Houston… on a un problème ! ==\nJ'ai rencontré une erreur et n'ai pas pu effectuer correctement mon travail d'avertissement concernant le [[WP:Forum des nouveaux]]. ~~~~"
+#	pdD_Frakir.put(text, comment=u"Houston… on a un problème !", minorEdit=False)
+#	
+#	check_page.put(check_chain, comment="", minorEdit=False)
+#	
+#	return 1
 	
 def main():
 	site = pywikibot.Site()
