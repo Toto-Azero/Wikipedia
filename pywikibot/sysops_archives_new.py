@@ -19,7 +19,8 @@ Différences avec la génération 1.0 :
 NB : La suppression des requêtes traitées reste toujours possible.
 
 Dernières corrections :
-* 3235 : Correction erreur archivage 1ère semaine de l'année
+* 3238 : gestion éventuels espaces dans paramètres modèle type {{RA début}}
+* 3235 : correction erreur archivage 1ère semaine de l'année
 """
 
 #
@@ -29,7 +30,8 @@ Dernières corrections :
 # Distributed under the terms of the GNU GPLv3 license
 # http://www.gnu.org/licenses/gpl.html
 #
-__version__ = '$Id: sysops_archives_new.py 3235 2014-01-03 20:18:58 (CET) Toto Azéro $'
+__version__ = '3238'
+__date__ = '2014-06-26 10:52:22 (CEST)'
 #
 
 import almalog2
@@ -157,9 +159,9 @@ class TreatementBot:
 			# On extrait les paramètres utiles (statut et date)
 				try:
 					date = template[1]['date']
-					if template[1][u'traitée'] == 'oui':
+					if template[1][u'traitée'].strip() == 'oui':
 						traitee = True
-					elif template[1][u'traitée'] == 'attente':
+					elif template[1][u'traitée'].strip() == 'attente':
 						wait = True
 				except:
 					pywikibot.output(u"Erreur ! Les paramètres 'date' et 'traitée' ne semblent pas exister !")
@@ -251,6 +253,7 @@ class TreatementBot:
 			
 			analyse = self.analyse_section(sections[numero_section])
 			if analyse == None: # Une erreur a eu lieu
+				print 'error: an unknown error occurred!'
 				continue
 			date = analyse['date']
 			traitee = analyse['traitée']

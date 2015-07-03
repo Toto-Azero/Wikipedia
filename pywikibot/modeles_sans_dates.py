@@ -1,26 +1,41 @@
 #!/usr/bin/python
 # -*- coding: utf-8  -*-
+"""
 
+Dernières modifications :
+* 0165 : espace de noms principal seulement, gestion de nouveaux modèles
+* 0162 : gestion du modèle {{Vérifiabilité}}
+* 0161 : gestion du modèle {{Vérifiabilité}}
+* 0160 : gestion du modèle {{Article sans source}}
+* 0159 : correction erreur unicode + adaptation aux Labs
+"""
 #
-# (C) Toto Azéro, 2013
+# (C) Toto Azéro, 2013-2015
 #
 # Distribué sous licence GNU GPLv3
 # Distributed under the terms of the GNU GPLv3 license
 # http://www.gnu.org/licenses/gpl.html
 #
-__version__ = '$Id: modeles_sans_dates.py 0153 2013-01-07 18:48:00 (CET) Toto Azéro $'
+__version__ = '$Id: modeles_sans_dates.py 0165 2015-07-03 14:31:40 (CEST) Toto Azéro $'
 #
 
 import pywikibot
+import almalog2
 import re, time, datetime
 import locale
 
 class BotPrecisionModele:
 	def __init__(self):
 		self.summary = u"Bot: Précision du paramètre 'date' %s dans le modèle {{%s}}"
-		self.titres_modeles_initiaux = [u"À sourcer", u"Admissibilité à vérifier", u"À wikifier"]
+		self.titres_modeles_initiaux = [u"À sourcer", u"Admissibilité à vérifier", u"À wikifier", \
+			u"Article sans source", u"Vérifiabilité", u"Orphelin", u"Guide pratique", u"Section guide pratique", \
+			u"Section guide pratique", u"Section à wikifier", u"Section à sourcer" ]
 		self.site = pywikibot.Site()
-		self.liste_titres_cats = [u"Admissibilité à vérifier, date manquante", u"Article à wikifier, date manquante"]
+		self.liste_titres_cats = [u"Admissibilité à vérifier, date manquante", u"Article à wikifier, date manquante", \
+			u"Article sans source, date manquante", u"Article non vérifiable, date manquante", \
+			u"Article orphelin, date manquante", u"Guide pratique, date manquante", \
+			u"Article manquant de référence depuis date inconnue" ]
+		#u"Article avec section à wikifier, date manquante"
 		
 	def generate_liste_pages_modele(self, modeles):
 		# Génère la liste complète des modèles utilisables (redirections comprises)
@@ -61,8 +76,8 @@ class BotPrecisionModele:
 						add_date = False
 						break
 			
-			pywikibot.output("add_date = %s" % str(add_date))
-			pywikibot.output("re_params = %s" % str(re_params))
+			pywikibot.output("add_date = %s" % unicode(add_date))
+			pywikibot.output("re_params = %s" % unicode(re_params))
 			
 			if add_date == True:
 				titre_modele = modele.title(withNamespace=False)
@@ -72,7 +87,7 @@ class BotPrecisionModele:
 				re_titre_modele = re.compile(u"{ *{ *([%s%s]%s%s)*} *}" % (titre_modele[0].lower(), titre_modele[0].upper(), titre_modele[1:], re_params))
 				
 				now = datetime.datetime.now()
-				date = now.strftime("%B %Y")
+				date = now.strftime(u"%B %Y")
 				
 				# Permet de ne charger le texte de la page qu'une seule fois
 				# Mis ici et non au début de la fonction car permet de ne pas charger
@@ -81,7 +96,8 @@ class BotPrecisionModele:
 					text = page.get()
 	
 				match_modele = re_titre_modele.search(text)
-				new = u"{{%s|date=%s}}" % (match_modele.group(1), date)
+				pywikibot.output(match_modele.group(1))
+				new = u"{{%s|date=%s}}" % (match_modele.group(1), date.decode('utf-8'))
 				pywikibot.output(new)
 				
 				text = text.replace(match_modele.group(0), new)
@@ -104,7 +120,7 @@ class BotPrecisionModele:
 		liste_pages_a_traiter = []
 		for titre_cat in self.liste_titres_cats:
 			cat = pywikibot.Category(self.site, titre_cat)
-			liste_pages_a_traiter.extend([page for page in cat.articles(content=True)])
+			liste_pages_a_traiter.extend([page for page in cat.articles(content=True, namespaces=[0])])
 		
 		if not liste_pages_a_traiter:
 			pywikibot.output(u"Aucune page à traiter")
@@ -136,12 +152,12 @@ def main():
 	bot.run()
 
 if __name__ == "__main__":
-	try:
-		locale.setlocale(locale.LC_ALL, 'fr_FR.utf8')
-	except:
-		locale.setlocale(locale.LC_ALL, 'fr_FR')
+	locale.setlocale(locale.LC_ALL, 'fr_FR.utf8')
 	
 	try:
 		main()
+	except Exception, myexception:
+		almalog2.error(u'modeles_sans_dates.py', u'%s %s'% (type(myexception), myexception.args))
+		raise
 	finally:
 		pywikibot.stopme()
