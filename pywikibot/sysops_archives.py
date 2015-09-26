@@ -8,8 +8,6 @@ Ce script classe les requêtes d'une page de requêtes aux sysops.
 
 TODO (A):
 	- fix error "No text to be save"
-	✓ mettre un 'try' dans les boucles "for numero_section in sections:" pour
-	  éviter qu'une section ne puisse tout faire bugguer… 
 	- faire des fonctions pour les morceaux de codes en doubles (ou plus ?)
 	
 Dernières corrections :

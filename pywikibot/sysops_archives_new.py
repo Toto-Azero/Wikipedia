@@ -44,7 +44,7 @@ import complements
 class TreatementBot:
 	def __init__(self, raccourci):
 		"""
-		Initiation du bot.
+		Initialisation du bot.
 		Chaque raccourci correspond à une page de requêtes aux admins et entraîne
 		des traitements différents en fonction des réglages (archivage/suppression,
 		délai de classement, etc.).

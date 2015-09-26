@@ -1,16 +1,27 @@
 #!/usr/bin/python
 # -*- coding: utf-8  -*-
 
+"""
+Notification aux administrateurs des demandes de déblocage (sur [[WP:RA]])
+
+Dernières modifications :
+* 1610 : Page créée avec une demande de déblocage,
+		 paramètre oldid dans la demande aux administrateurs
+* 1605 : Ne rapatrie que les demandes faites par le propriétaire de la PdD
+* 1540 : Ne rapatrie que les demandes faites en PdD utilisateur
+* 1535+ : mise à niveau eqiad
+"""
+
 #
 # (C) Nakor
-# (C) Toto Azéro, 2011-2013
+# (C) Toto Azéro, 2011-2014
 #
 # Distribué sous licence GNU GPLv3
 # Distributed under the terms of the GNU GPLv3 license
 # http://www.gnu.org/licenses/gpl.html
 #
 
-__version__ = '$Id: unblock.py 1535 2013-08-30 11:45:48 (CEST) Toto Azéro $'
+__version__ = '$Id: unblock.py 1610 2014-09-07 17:44:17 (CEST) Toto Azéro $'
 
 import almalog2
 import pywikibot
@@ -71,6 +82,67 @@ def check_open_section(username):
 	pywikibot.output(u"already_warned = %s" % already_warned)
 	return already_warned
 
+def find_add(page):
+	"""
+	Returns (user, oldid) where
+	  * user is the user thatwho added the {{Déblocage}} template
+	     (pywikibot.User)
+	  * oldid is the oldid of the revision of this add
+	     (int)
+	"""
+	site = pywikibot.Site()
+	
+	unblock_found = True
+	history = page.getVersionHistory()
+	
+	if len(history) == 1:
+		[(id, timestamp, user, comment)] = history
+		return (pywikibot.User(site, user), id)
+	
+	oldid = None
+	requester = None
+	
+	for (id, timestamp, user, comment) in history:
+		pywikibot.output("Analyzing id %i: timestamp is %s and user is %s" % (id, timestamp, user))
+		
+		text = page.getOldVersion(id)
+		templates_params_list = textlib.extract_templates_and_params(text)
+		unblock_found = False
+		for (template_name, dict_param) in templates_params_list:
+			pywikibot.output((template_name, dict_param))
+			try:
+				template_page = pywikibot.Page(pywikibot.Link(template_name, site, defaultNamespace=10), site)
+				pywikibot.output(template_page)
+				pywikibot.output(template_page.title(withNamespace=False))
+				# TODO : auto-finding redirections
+				if template_page.title(withNamespace=False) in [u"Déblocage", u"Unblock"]:
+					# le modèle {{déblocage}} peut ne plus être actif
+					if ((not dict_param.has_key('nocat')) or (dict_param.has_key('nocat') and dict_param['nocat'] in ["non", ''])) and not (dict_param.has_key('1') and dict_param['1'] in ['nocat', 'oui', 'non', u'traité', 'traité', u'traitée', 'traitée']):				
+						pywikibot.output('Found unblock request')
+						unblock_found = True
+						break
+			except Exception, myexception:
+				pywikibot.output(u'An error occurred while analyzing template %s' % template_name)
+				pywikibot.output(u'%s %s'% (type(myexception), myexception.args))
+		
+		print("id is %i" % id)
+		if oldid:
+			print("oldid is %i" % oldid)
+		else:
+			print "no oldid"
+		if not unblock_found:
+			if id == oldid:
+				pywikibot.output("Last revision does not contain any {{Déblocage}} template!")
+				return None
+			else:
+				return (requester, oldid)
+		else:
+			requester = pywikibot.User(site, user)
+			oldid = id
+	
+	# Si on arrive là, c'est que la première version de la page contenait déjà le modèle
+	return (pywikibot.User(site, user), id)
+
 def main():
 	text=False
 	database=False
@@ -98,6 +170,16 @@ def main():
 	userlist=list()
 	for page in generator:
 		userpage=page.title(withNamespace=False)
+		if page.namespace() != 3:
+			pywikibot.output(u'Page %s is not in the user talk namespace, skipping.' % userpage)
+			continue
+		
+		(requester, oldid) = find_add(page)
+		pywikibot.output(u'Request for unblock has been made by %s in id %i' % (requester, oldid))
+		if not requester.username in userpage.split('/')[0]:
+			pywikibot.output(u'Request for unblock has been made by %s, who is not the owner of the page %s: skipping' % (requester, userpage))
+			continue
+		
 		username=re.split(u'/', userpage,1)[0]
 		pywikibot.output(u'Processing %s' % username)
 		userlist.append(username)
@@ -121,7 +203,7 @@ def main():
 		if (blocked or debug) and not check_open_section(username):
 			pywikibot.output("%s is blocked" % username)
 			if not database:
-				database = _mysql.connect(host='tools-db', db='p50380g50643__totoazero', read_default_file="/data/project/totoazero/replica.my.cnf")
+				database = _mysql.connect(host='tools-db', db='s51245__totoazero', read_default_file="/data/project/totoazero/replica.my.cnf")
 			sqlusername=re.sub(u'\'', u'\'\'', username)
 			database.query('SELECT date FROM unblocks WHERE username=\'%s\'' % sqlusername.encode('utf-8'))
 			results=database.store_result()
@@ -151,7 +233,7 @@ def main():
 			if update:
 				if not text:
 					text=get_text()
-				text+=u'\n{{subst:Utilisateur:ZéroBot/Déblocage|%s}}' % username
+				text+=u'\n{{subst:Utilisateur:ZéroBot/Déblocage|%s|oldid=%i}}' % (username, oldid)
 				database.query('INSERT INTO unblocks VALUES (NULL , \'%s\', CURRENT_TIMESTAMP)' % sqlusername.encode('utf-8'))
 
 		elif not check_open_section(username):
@@ -164,7 +246,7 @@ def main():
 			pywikibot.output("%s is blocked but a request has already been made"  % username)
 	
 	if not database:
-		database = _mysql.connect(host='tools-db', db='p50380g50643__totoazero', read_default_file="/data/project/totoazero/replica.my.cnf")
+		database = _mysql.connect(host='tools-db', db='s51245__totoazero', read_default_file="/data/project/totoazero/replica.my.cnf")
 	database.query('SELECT username FROM unblocks')
 	results=database.store_result()
 	result=results.fetch_row(maxrows=0)
@@ -181,10 +263,13 @@ if __name__ == '__main__':
 	try:
 		global debug
 		debug = False
+		
+		global silent
+		silent = False
 		main()
 	except Exception, myexception:
 		pywikibot.output(u'%s %s'% (type(myexception), myexception.args))
-		if not debug:
+		if (not debug) and (not silent):
 			almalog2.error(u'unblock', u'%s %s'% (type(myexception), myexception.args))
 		raise
 	finally:
