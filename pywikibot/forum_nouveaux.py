@@ -6,6 +6,8 @@ Avertissement des nouveaux ayant reçu une réponse à leur question sur le [[WP
 et sur [[WP:Forum des nouveaux/relecture]].
 
 Dernières modifications :
+* 0570 : résolution bug prise en charge titre de section avec un slash ('/') ou deux points (':')
+* 0569 : mise à niveau eqiad
 * 0568+ : vérification de la sauvegarde de l'oldid
 * 0568 : changement modèle réponse : [[Utilisateur:ZéroBot/Forum des nouveaux/Réponse]]
 * 0550 : précisions logs
@@ -21,8 +23,8 @@ Dernières modifications :
 # Distributed under the terms of the GNU GPLv3 license
 # http://www.gnu.org/licenses/gpl.html
 #
-__version__ = '0568+'
-__date__ = '2013-08-22 19:00:45 (CEST)'
+__version__ = '0570'
+__date__ = '2014-08-31 22:03:30 (CEST)'
 #
 import pywikibot, complements
 import re, urllib, _mysql
@@ -126,7 +128,7 @@ class AnalyserBot:
 			
 	def make_database(self):
 		if not self.database:
-			self.database = _mysql.connect(host='tools-db', db='p50380g50643__totoazero', read_default_file="/data/project/totoazero/replica.my.cnf")
+			self.database = _mysql.connect(host='tools-db', db='s51245__totoazero', read_default_file="/data/project/totoazero/replica.my.cnf")
 			pywikibot.output(u"Database initialized.")
 			
 	def get_oldid(self):
@@ -267,7 +269,7 @@ class AnalyserBot:
 		
 		titre_section = section.strip('= ')
 		titre_section_MediaWiki = titre_section.replace("[[", "").replace("]]", "")
-		titre_section_MediaWiki = urllib.quote(titre_section_MediaWiki.encode('utf-8'), safe=" /").replace(" ", "_").replace("%", ".")
+		titre_section_MediaWiki = urllib.quote(titre_section_MediaWiki.encode('utf-8'), safe=" :").replace(" ", "_").replace("%", ".")
 		
 		talk_page = demandeur.getUserTalkPage()
 		

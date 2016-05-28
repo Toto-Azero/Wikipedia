@@ -5,8 +5,13 @@
 Notification aux administrateurs des demandes de déblocage (sur [[WP:RA]])
 
 Dernières modifications :
+* 1651 : %i non complété
+* 1650 : En cas d'erreur lors de la mise à jour de WP:RA (ex: conflit d'édit),
+         supprimer les noms d'utilisateurs de la base SQL en l'abscen
+         de traitement
+* 1611 : Correction erreur encodage
 * 1610 : Page créée avec une demande de déblocage,
-		 paramètre oldid dans la demande aux administrateurs
+         paramètre oldid dans la demande aux administrateurs
 * 1605 : Ne rapatrie que les demandes faites par le propriétaire de la PdD
 * 1540 : Ne rapatrie que les demandes faites en PdD utilisateur
 * 1535+ : mise à niveau eqiad
@@ -14,14 +19,14 @@ Dernières modifications :
 
 #
 # (C) Nakor
-# (C) Toto Azéro, 2011-2014
+# (C) Toto Azéro, 2011-2016
 #
 # Distribué sous licence GNU GPLv3
 # Distributed under the terms of the GNU GPLv3 license
 # http://www.gnu.org/licenses/gpl.html
 #
 
-__version__ = '$Id: unblock.py 1610 2014-09-07 17:44:17 (CEST) Toto Azéro $'
+__version__ = '$Id: unblock.py 1651 2016-05-28 12:19:24 (CEST) Toto Azéro $'
 
 import almalog2
 import pywikibot
@@ -46,14 +51,20 @@ def put_text(text, usernames_blocked):
 	page=pywikibot.Page(site, pagename)
 	
 	if len(usernames_blocked) > 1:
-		summary = u"%i demandes de déblocages : "
+		summary = u"%i demandes de déblocages : " % len(usernames_blocked)
 		for username in usernames_blocked:
 			summary += u"[[User:%s|]] ;" % username
 		summary = summary[0:-2]
 	else:
 		summary = u"/* Demande de déblocage de %s */ nouvelle section" % usernames_blocked[0]
-		
-	page.put(text, summary, minorEdit = silent, botflag = silent)
+	
+	try:
+		page.put(text, summary, minorEdit = silent, botflag = silent)
+	except Exception, myexception:
+		pywikibot.output(u'erreur lors de la mise à jour de WP:RA :\n%s %s'% (type(myexception), myexception.args))
+		for username in usernames_blocked:
+			database.query('DELETE FROM unblocks WHERE username="%s"' % username.encode('utf-8'))
+		raise myexception
 
 def check_open_section(username):
 	already_warned = False
@@ -109,17 +120,22 @@ def find_add(page):
 		templates_params_list = textlib.extract_templates_and_params(text)
 		unblock_found = False
 		for (template_name, dict_param) in templates_params_list:
-			pywikibot.output((template_name, dict_param))
+			#pywikibot.output((template_name, dict_param))
 			try:
+				print 0
 				template_page = pywikibot.Page(pywikibot.Link(template_name, site, defaultNamespace=10), site)
+				print 1
 				pywikibot.output(template_page)
 				pywikibot.output(template_page.title(withNamespace=False))
 				# TODO : auto-finding redirections
 				if template_page.title(withNamespace=False) in [u"Déblocage", u"Unblock"]:
 					# le modèle {{déblocage}} peut ne plus être actif
-					if ((not dict_param.has_key('nocat')) or (dict_param.has_key('nocat') and dict_param['nocat'] in ["non", ''])) and not (dict_param.has_key('1') and dict_param['1'] in ['nocat', 'oui', 'non', u'traité', 'traité', u'traitée', 'traitée']):				
+					print 2
+					if ((not dict_param.has_key('nocat')) or (dict_param.has_key('nocat') and dict_param['nocat'] in ["non", ''])) and not (dict_param.has_key('1') and dict_param['1'] in ['nocat', 'oui', 'non', u'traité', u'traité', u'traitée', u'traitée']):				
 						pywikibot.output('Found unblock request')
+						pywikibot.output((template_name, dict_param))
 						unblock_found = True
+						print 3
 						break
 			except Exception, myexception:
 				pywikibot.output(u'An error occurred while analyzing template %s' % template_name)
@@ -273,6 +289,6 @@ if __name__ == '__main__':
 			almalog2.error(u'unblock', u'%s %s'% (type(myexception), myexception.args))
 		raise
 	finally:
-		almalog2.writelogs(u'unblock')
+		#almalog2.writelogs(u'unblock')
 		pywikibot.stopme()
 

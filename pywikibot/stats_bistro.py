@@ -24,24 +24,14 @@ import locale, re
 from datetime import datetime
 import complements
 
-# WARNING : This script is expected to run only under Linux, not under Solaris !
-# ATTENTION : Ce script est prévu pour tourner uniquement sous Linux, pas sous Solaris !
 
-
-def main():	
-	#try:
+def main():
 	locale.setlocale(locale.LC_ALL, 'fr_FR.utf8')
-	#except:
-	#	locale.setlocale(locale.LC_ALL, 'fr_FR')
 		
 	site = pywikibot.Site()
 	now = datetime.now()
 	
-	#if now.strftime("%B") == 'ao\xfbt':
-	#	page = pywikibot.Page(site, u"Wikipédia:Le Bistro/%i août %s" % (int(now.strftime("%d")), now.strftime("%Y")))
-	#else:
 	page = pywikibot.Page(site, u"Wikipédia:Le Bistro/%i %s" % (int(now.strftime("%d")), now.strftime("%B %Y").decode('utf-8')))
-	#pywikibot.output(page.title())
 	
 	text = page.get()
 	text_part = text[text.index(u"\n== Aujourd'hui, dans Wikipédia =="):]
@@ -55,7 +45,6 @@ def main():
 	text = text.replace(text_part_old, text_part)
 	
 	page.put(text, comment = u"Statistiques fixes dans la section [[#Aujourd.27hui.2C_dans_Wikip.C3.A9dia|#Aujourd'hui, dans Wikipédia]]")
-	
 	
 	
 if __name__ == '__main__':

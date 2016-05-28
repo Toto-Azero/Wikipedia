@@ -19,19 +19,22 @@ Différences avec la génération 1.0 :
 NB : La suppression des requêtes traitées reste toujours possible.
 
 Dernières corrections :
+* 3252 : gestion (pas très propre) du paramètre "encours"
+* 3250 : résolution du "bug de la nouvelle année", qui conduisait le bot
+		 à mal archiver les requêtes de la dernière semaine de l'année
 * 3238 : gestion éventuels espaces dans paramètres modèle type {{RA début}}
 * 3235 : correction erreur archivage 1ère semaine de l'année
 """
 
 #
-# (C) Toto Azéro, 2011-2014
+# (C) Toto Azéro, 2011-2016
 #
 # Distribué sous licence GNU GPLv3
 # Distributed under the terms of the GNU GPLv3 license
 # http://www.gnu.org/licenses/gpl.html
 #
-__version__ = '3238'
-__date__ = '2014-06-26 10:52:22 (CEST)'
+__version__ = '3252'
+__date__ = '2016-02-14 18:45:40 (CET)'
 #
 
 import almalog2
@@ -161,7 +164,7 @@ class TreatementBot:
 					date = template[1]['date']
 					if template[1][u'traitée'].strip() == 'oui':
 						traitee = True
-					elif template[1][u'traitée'].strip() == 'attente':
+					elif template[1][u'traitée'].strip() in ('attente', 'encours'):
 						wait = True
 				except:
 					pywikibot.output(u"Erreur ! Les paramètres 'date' et 'traitée' ne semblent pas exister !")
@@ -465,15 +468,23 @@ class TreatementBot:
 				if self.dict['delai']['archivage'] <= ((now-date).seconds/3600 + (now-date).days*24):
 					pywikibot.output(u'=> archivage')
 					
+					year = date.isocalendar()[0]
 					weekNumber = date.isocalendar()[1]
-					if not requests_to_archive.has_key(weekNumber):
-						requests_to_archive[weekNumber] = []
 					
-					if not texts_requests_to_archive.has_key(weekNumber):
-						texts_requests_to_archive[weekNumber] = u""
+					if not requests_to_archive.has_key(year):
+						requests_to_archive[year] = {}
+						
+					if not requests_to_archive[year].has_key(weekNumber):
+						requests_to_archive[year][weekNumber] = []
 					
-					requests_to_archive[weekNumber].append(sections[numero_section])
-					texts_requests_to_archive[weekNumber] += sections[numero_section]
+					if not texts_requests_to_archive.has_key(year):
+						texts_requests_to_archive[year] = {}
+					
+					if not texts_requests_to_archive[year].has_key(weekNumber):
+						texts_requests_to_archive[year][weekNumber] = u""
+					
+					requests_to_archive[year][weekNumber].append(sections[numero_section])
+					texts_requests_to_archive[year][weekNumber] += sections[numero_section]
 				else:
 					pywikibot.output(u'=> pas d\'archivage')
 			
@@ -498,38 +509,40 @@ class TreatementBot:
 				# au traitement suivant (de l'autre type de requêtes).
 				return
 			
-			for week_number in requests_to_archive:
-				for section in requests_to_archive[week_number]:
-					text = text.replace(section, '')
+			for year in requests_to_archive:
+				pywikibot.output('_____________ year : %i _____________' % year)
+				for week_number in requests_to_archive[year]:
+					for section in requests_to_archive[year][week_number]:
+						text = text.replace(section, '')
 				
-				pywikibot.output('_________ week_number : %i _________' % week_number)
+					pywikibot.output('_________ week_number : %i _________' % week_number)
 				
-				if week_number == 52: # Nouvelle année
-					archive_page = pywikibot.Page(self.site, u"%s/%s%i/Semaine %i" % (self.main_page.title(asLink = False), self.archivePrefix, now.isocalendar()[0]-1, week_number))
-				else:
-					archive_page = pywikibot.Page(self.site, u"%s/%s%i/Semaine %i" % (self.main_page.title(asLink = False), self.archivePrefix, now.isocalendar()[0], week_number))
+					if week_number == 52: # Nouvelle année
+						archive_page = pywikibot.Page(self.site, u"%s/%s%i/Semaine %i" % (self.main_page.title(asLink = False), self.archivePrefix, year, week_number))
+					else:
+						archive_page = pywikibot.Page(self.site, u"%s/%s%i/Semaine %i" % (self.main_page.title(asLink = False), self.archivePrefix, year, week_number))
 				
-				if archive_page.exists():
-					new_text = archive_page.get()
-					while new_text[-2:] != '\n\n': # Pour rajouter des sauts de lignes si nécessaire.
-						new_text += '\n'
-					new_text += texts_requests_to_archive[week_number]
-				else:
-					new_text = texts_requests_to_archive[week_number]
-			
-				# Mise à jour de la page de classement en cours de traitement
-				# ainsi que de la apge d'archive
-				comment = (u"Archivage de %i requêtes" % len(requests_to_archive[week_number]))
-				try:
-					pywikibot.showDiff(self.treated_page.get(), text)
-					pywikibot.output('******************************************************')
 					if archive_page.exists():
-						pywikibot.showDiff(archive_page.get(), new_text)
-					self.treated_page.put(text, comment = (comment + u" vers %s" % archive_page.title(asLink = True)))
-					archive_page.put(new_text, comment = comment)
-				except Exception, myexception:
-					pywikibot.output("erreur type 2 : %s %s" % (type(myexception), myexception.args))
-					#print u'%s %s' % (type(myexception), myexception.args)
+						new_text = archive_page.get()
+						while new_text[-2:] != '\n\n': # Pour rajouter des sauts de lignes si nécessaire.
+							new_text += '\n'
+						new_text += texts_requests_to_archive[year][week_number]
+					else:
+						new_text = texts_requests_to_archive[year][week_number]
+			
+					# Mise à jour de la page de classement en cours de traitement
+					# ainsi que de la apge d'archive
+					comment = (u"Archivage de %i requêtes" % len(requests_to_archive[year][week_number]))
+					try:
+						#pywikibot.showDiff(self.treated_page.get(), text)
+						#pywikibot.output('******************************************************')
+						#if archive_page.exists():
+							#pywikibot.showDiff(archive_page.get(), new_text)
+						self.treated_page.put(text, comment = (comment + u" vers %s" % archive_page.title(asLink = True)))
+						archive_page.put(new_text, comment = comment)
+					except Exception, myexception:
+						pywikibot.output("erreur type 2 : %s %s" % (type(myexception), myexception.args))
+						#print u'%s %s' % (type(myexception), myexception.args)
 				
 			
 		elif self.dict['supprimer']:

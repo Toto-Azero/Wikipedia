@@ -30,14 +30,13 @@ The following parameters are supported:
 __version__ = '$Id: bistro.py 1000 2013-07-11 12:32:24 (CEST) Toto Azéro $'
 #
 import almalog2
-from pywikibot import config, pagegenerators, pywikibot
+import pywikibot
+from pywikibot import config, pagegenerators
 import locale 
 from datetime import datetime, timedelta
 
 # Define the main function
-def main():
-	site = pywikibot.getSite()
-  
+def main():  
 	force = False
 	for arg in pywikibot.handleArgs():
 		if arg.startswith('-force'):
@@ -61,7 +60,7 @@ def main():
 	except:
 		locale.setlocale(locale.LC_ALL, 'fr_FR')
 	
-	datetimetarget=datetime.utcnow()+timedelta(30)
+	datetimetarget=datetime.utcnow()+timedelta(15)
 	datetimefinal=datetime.utcnow()+timedelta(44)
 	
 	date=datetimetarget.strftime('%d %B %Y')
@@ -73,6 +72,7 @@ def main():
 	else:
 	  date=u'Wikipédia:Le Bistro/'+date
 	
+	site = pywikibot.Site()
 	page=pywikibot.Page(site, date)
 	
 	datetimetarget=datetime.utcnow()

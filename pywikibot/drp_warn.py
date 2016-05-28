@@ -5,6 +5,8 @@
 Avertissement des demandeurs de la réponse des admins sur leur DRP.
 
 Dernières modifications :
+* 1900 : amélioration pour le gestion du cas d'une PàS technique
+         (notamment pour les espaces de nom différents du main)
 * 1890 : meilleure gestion des IPv6
 * 1875 : correction bug section principale vide
 * 1874 : correction mineure, introduction whitelist
@@ -21,14 +23,14 @@ Dernières modifications :
 """
 
 #
-# (C) Toto Azéro, 2011-2015
+# (C) Toto Azéro, 2011-2016
 #
 # Distribué sous licence GNU GPLv3
 # Distributed under the terms of the GNU GPLv3 license
 # http://www.gnu.org/licenses/gpl.html
 #
-__version__ = '1890'
-__date__ = '2015-09-26 23:41:50 (CEST)'
+__version__ = '1900'
+__date__ = '2016-01-04 22:52:30 (CET)'
 #
 
 import pywikibot
@@ -144,6 +146,9 @@ Distribué par [[Utilisateur:ZéroBot|ZéroBot]], le ~~~~~"""
 				# templates est du type :
 				#     [(u'DRP début', {u'date': u'27 février 2010 à 14:56 (CEC)'
 				#     , u'statut': u'oui'}), (u'DRP fin', {})]
+				
+				PaS = False
+				found_full_template = False
 				for template in templates:
 					if template[0] == u'DRP début':
 						if not ('statut' in template[1]):
@@ -153,9 +158,9 @@ Distribué par [[Utilisateur:ZéroBot|ZéroBot]], le ~~~~~"""
 							pywikibot.output(u"pas de paramètre 'date' trouvé")
 							continue
 						
+						found_full_template = True
 						statut_actuel = template[1]['statut']
 						date = template[1]['date']
-						PaS = False
 						if template[1].has_key(u'PàS'):
 							pywikibot.output('phase try 0')
 							pywikibot.output(template[1][u'PàS'])
@@ -166,8 +171,14 @@ Distribué par [[Utilisateur:ZéroBot|ZéroBot]], le ~~~~~"""
 							elif template[1][u'PàS'] != '':
 								pywikibot.output('phase try 2')
 								PaS = True
-								page_PaS = pywikibot.Page(self.site, u"Discussion:%s/Suppression" % template[1][u'PàS'])
-							
+								page_PaS = pywikibot.Page(self.site, u"%s/Suppression" % template[1][u'PàS']).toggleTalkPage()
+				
+				pywikibot.output(u'found_full_template = %s' % found_full_template)
+				
+				if not found_full_template:
+					pywikibot.output('Fully fulfilled template was not found, skipping to next section.')
+					continue
+				
 				pywikibot.output(u"PaS = %s" % PaS)
 				if PaS:
 					try:
@@ -273,14 +284,14 @@ Distribué par [[Utilisateur:ZéroBot|ZéroBot]], le ~~~~~"""
 					
 				titre_page_concernee = m.group('titre_page').strip()
 				pywikibot.output(titre_page_concernee)
-				
+					
 				# Vérifier si une PàS technique pour la restauration a été
 				# lancée ou non.
 				if statut_actuel == 'oui':
 					if PaS:
 						statut_actuel = 'oui_PaS'
 						pywikibot.output('oui_PaS')
-						if not page_PaS.exists():
+						if not page_PaS or page_PaS.exists():
 							try:
 								page_PaS = pywikibot.Page(self.site, titre_page_concernee + "/Suppression").toggleTalkPage() #pywikibot.Page(self.site, u"Discussion:%s/Suppression" % titre_page_concernee)
 								page_PaS.get()
@@ -345,7 +356,7 @@ Distribué par [[Utilisateur:ZéroBot|ZéroBot]], le ~~~~~"""
 					newtext += u"== %s ==" % self.titre_message % {'titre_page': titre_page_concernee}
 					newtext += '\n'
 					newtext += message
-					pywikibot.showDiff(page_discussion_demandeur.get(), newtext)
+		# pwb_error			pywikibot.showDiff(page_discussion_demandeur.get(), newtext)
 				else:
 					newtext = u"== %s ==" % self.titre_message % {'titre_page': titre_page_concernee}
 					newtext += '\n'

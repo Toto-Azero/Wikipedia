@@ -8,21 +8,24 @@ Ce script classe les requêtes d'une page de requêtes aux sysops.
 
 TODO (A):
 	- fix error "No text to be save"
+	✓ mettre un 'try' dans les boucles "for numero_section in sections:" pour
+	  éviter qu'une section ne puisse tout faire bugguer… 
 	- faire des fonctions pour les morceaux de codes en doubles (ou plus ?)
 	
 Dernières corrections :
+* 2900 : gestion statuts autre et autreavis pour DRP
 * 2855 : gestion de la date (type 7h53 en plus de 7:53)
 * 2853 : correction d'un problème causé par la présence d'un antislash suivi d'un nombre dans la page
 """
 
 #
-# (C) Toto Azéro, 2011-2013
+# (C) Toto Azéro, 2011-2015
 #
 # Distribué sous licence GNU GPLv3
 # Distributed under the terms of the GNU GPLv3 license
 # http://www.gnu.org/licenses/gpl.html
 #
-__version__ = '$Id: sysops_archives.py 2855 2013-12-27 13:07:52 (CET) Toto Azéro $'
+__version__ = '$Id: sysops_archives.py 2900 2015-11-14 19:47:06 (CET) Toto Azéro $'
 #
 
 import almalog2
@@ -238,10 +241,6 @@ class TreatementBot:
 				# celui qui nous intéresse.
 				break
 		
-		# Les statuts 'autre' et 'autreavis' n'ont pas de sections particulères.
-		if statut == 'autre' or statut == 'autreavis':
-			statut = ''
-		
 		return {'date': date, 'statut': statut}
 	
 	def classement(self):
@@ -285,10 +284,10 @@ class TreatementBot:
 		#print re.search(re.compile(u"= *Requêtes en cours d'examen *= *\n+(.*)\n*= *Requêtes à traiter *=", re.S), self.text)
 		
 		text_requetes_en_attente = re.search(re.compile(u"= *Requêtes en cours d'examen *= *\n+(.*)\n*= *Requêtes à traiter *=", re.S), self.text).group(1)
-		pywikibot.output('text_requetes_en_attente')
-		pywikibot.output(text_requetes_en_attente)
-		
-		pywikibot.output('--------------------------------')
+		#pywikibot.output('text_requetes_en_attente')
+		#pywikibot.output(text_requetes_en_attente)
+		#
+		#pywikibot.output('--------------------------------')
 		
 		self.text = self.text.replace(text_requetes_en_attente, '')
 		self.text = re.sub(u"(= Requêtes à traiter =\n*)\n", u"\\1\n%s" % text_requetes_en_attente.replace('\\', u'{[(+-/antislash/-+)]}'), self.text)
@@ -302,7 +301,7 @@ class TreatementBot:
 		self.text = re.sub(u"(= *Requêtes en cours d'examen *= *)", u"\\1%s" % self.text_below_waiting_requests, self.text)
 		self.text = re.sub(u"(= *Requêtes à traiter *= *)", u"\\1%s" % self.text_below_untreated_requests, self.text)
 		
-		pywikibot.output(self.text)
+		#pywikibot.output(self.text)
 		
 		#for numero_section in sections:
 		#	print '--------------------------------'
@@ -319,7 +318,7 @@ class TreatementBot:
 		
 		for numero_section in sections:
 			pywikibot.output('--------------------------------')
-			pywikibot.output(sections[numero_section])
+			pywikibot.output(titres[numero_section])
 			
 			analyse = self.analyse_section(sections[numero_section])
 			if analyse == None: # Une erreur a eu lieu
@@ -327,30 +326,33 @@ class TreatementBot:
 			date = analyse['date']
 			statut = analyse['statut']
 			
-			if statut not in ['oui', 'non', 'attente']:
-				# Le statut de la requête n'est pa reconnu ou pas pris en charge
-				#   ex : statuts 'autre' et 'autreavis'
+			pywikibot.output('date found: %s' % date)
+			pywikibot.output('statut found: %s' % statut)
+			
+			if statut not in ['oui', 'non', 'attente', 'autreavis', 'autre']:
+				# Le statut de la requête n'est pas reconnu ou pas pris en charge
 				continue
 			
-			if not date and statut != 'attente':
+			if not date and statut not in ['attente', 'autreavis', 'autre']:
 				# Si la requête n'a pas de date et n'est pas en attente,
 				# on la laisse  l'endroit où elle est, pour éviter de
 				# modifier l'ordre d'apparition des requêtes.
 				pywikibot.output(u'aucune date renseignée')
 				continue
 				
-			if statut == 'attente':
+			if statut in ['attente', 'autreavis', 'autre']:
 				# Si la requête est en attente, on la classe dans le dictionnaire, 
 				# on la supprime du texte mais il est inutile d'aller plus loin
 				# pour analyser la date, puisqu'elle sera automatiquement classée
 				# dans la section "Requêtes en cours d'examen"
+				pywikibot.output('Status found: wainting')
 				self.text = self.text.replace(sections[numero_section], '')
 				dict_requetes_par_statut['attente'].append(sections[numero_section])
 				continue
 				
 			try:
 				date = self.match_date.search(date)
-				pywikibot.output(date.group('month'))
+				#pywikibot.output(date.group('month'))
 				
 				# Il est préférable de reformater la date, toujours au format string
 				# avant de la parser avec la commande datetime.strptime.
@@ -362,17 +364,16 @@ class TreatementBot:
 				# tels février, décembre et août.
 				text_date = u"%s %s %s %s:%s" % (date.group('day'), self.les_mois[date.group('month')], date.group('year'), date.group('hours'), date.group('minutes'))
 				date = datetime.strptime(text_date, u"%d %m %Y %H:%M")
-				pywikibot.output(date)
+				pywikibot.output("date is %s" % date)
 			except:
 				pywikibot.output(u'erreur: problème avec la date')
 				continue
 			
 			now = datetime.now()
 			
-			pywikibot.output(now)
-			pywikibot.output(self.dict['delai']['classement'])
-			pywikibot.output((now-date))
-			pywikibot.output(((now-date).seconds/3600) + (now-date).days*24)
+			#pywikibot.output(now)
+			#pywikibot.output(self.dict['delai']['classement'])
+			pywikibot.output("from then to now: %s, that is %i hours" % ((now-date), ((now-date).seconds/3600) + (now-date).days*24))
 			
 			# Si la requête possède le délai requis pour être classée…
 			if self.dict['delai']['classement'] <= ((now-date).seconds/3600 + (now-date).days*24):
@@ -384,21 +385,25 @@ class TreatementBot:
 				# On supprime la requête de la section des requêtes à traiter.
 				self.text = self.text.replace(sections[numero_section], '')
 				
-			else: # …sinon, on la met dans la liste dict_requetes_par_statut['']
+			else: # …sinon, on la laisse en place
 				pywikibot.output('=> pas de classement')
-				dict_requetes_par_statut[''].append(sections[numero_section])
+				if sections[numero_section] in text_requetes_en_attente:
+					self.text = self.text.replace(sections[numero_section], '')
+					dict_requetes_par_statut['attente'].append(sections[numero_section])
+				else:
+					dict_requetes_par_statut[''].append(sections[numero_section])
 				
 		##
 		# Pour les tests
 		##
-		for statut in dict_requetes_par_statut:
-			pywikibot.output('=================================')
-			pywikibot.output(statut)
-			for requete in dict_requetes_par_statut[statut]:
-				pywikibot.output('--------------------------------')
-				pywikibot.output(requete)
-		
-		pywikibot.output('=================================')
+		#for statut in dict_requetes_par_statut:
+		#	pywikibot.output('=================================')
+		#	pywikibot.output(statut)
+		#	for requete in dict_requetes_par_statut[statut]:
+		#		pywikibot.output('--------------------------------')
+		#		pywikibot.output(requete)
+		#
+		#pywikibot.output('=================================')
 		##
 		
 		# Récupération des requêtes déjà acceptées/refusées
@@ -423,8 +428,8 @@ class TreatementBot:
 		for requete in dict_requetes_par_statut['attente']:
 			text_waiting += requete
 		
-		pywikibot.output('text_waiting')
-		pywikibot.output(text_waiting)
+		#pywikibot.output('text_waiting')
+		#pywikibot.output(text_waiting)
 		
 	#	text_untreated = ""
 	#	for requete in dict_requetes_par_statut['']:
@@ -447,19 +452,16 @@ class TreatementBot:
 		self.text = re.sub(u"\n+(= *[rR]equêtes *à *traiter *= *)", u"\n%s\\1" % text_waiting.replace('\\', u'{[(+-/antislash/-+)]}'), self.text)
 		self.text = self.text.replace(u"{[(+-/antislash/-+)]}", '\\')
 		
-		#page = pywikibot.Page(self.site, u"User:ZéroBot/Wikipédia:Requête aux administrateurs")
 		comment = u"Classement des requêtes (%i requête(s) acceptée(s), %i requête(s) refusée(s), %i requête(s) en attente)" % (len(dict_requetes_par_statut['oui']), len(dict_requetes_par_statut['non']), len(dict_requetes_par_statut['attente']))
-		pywikibot.output(self.text)
-		pywikibot.showDiff(self.main_page.get(), self.text)
+		#pywikibot.output(self.text)
+		#pywikibot.showDiff(self.main_page.get(), self.text)
 		self.main_page.put(self.text, comment = comment)
 		pywikibot.output(comment)
 		
-		#page = pywikibot.Page(self.site, u"User:ZéroBot/Wikipédia:Requête aux administrateurs/Requêtes traitées")
 		comment = u"Classement des requêtes : %i requête(s) acceptée(s)" % len(dict_requetes_par_statut['oui']) 
 		self.accepted_page.put(text_accepted, comment = comment)
 		pywikibot.output(comment)
 		
-		#page = pywikibot.Page(self.site, u"User:ZéroBot/Wikipédia:Requête aux administrateurs/Requêtes refusées")
 		comment = u"Classement des requêtes : %i requête(s) refusée(s)" % len(dict_requetes_par_statut['non'])
 		self.refused_page.put(text_refused, comment = comment)
 		pywikibot.output(comment)
@@ -505,7 +507,7 @@ class TreatementBot:
 			# Début de la boucle d'analyse de chacune des sections, au cas par cas.
 			for numero_section in sections:
 				pywikibot.output('--------------------------------')
-				pywikibot.output(sections[numero_section])
+				pywikibot.output(titres[numero_section])
 				
 				analyse = self.analyse_section(sections[numero_section])
 				if analyse == None: # Une erreur a eu lieu
@@ -531,17 +533,17 @@ class TreatementBot:
 					# tels février, décembre et août.
 					text_date = u"%s %s %s %s:%s" % (date.group('day'), self.les_mois[date.group('month')], date.group('year'), date.group('hours'), date.group('minutes'))
 					date = datetime.strptime(text_date, u"%d %m %Y %H:%M")
-					pywikibot.output(date)
+					pywikibot.output("date is: %s" % date)
 				except:
 					pywikibot.output(u'erreur: problème avec la date')
 					continue
 	
 				now = datetime.now()
 				
-				pywikibot.output(now)
-				pywikibot.output(self.dict['delai']['classement'])
-				pywikibot.output((now-date))
-				pywikibot.output(((now-date).seconds/3600) + (now-date).days*24)
+				#pywikibot.output(now)
+				pywikibot.output(u"délai classement : %i heures" % self.dict['delai']['classement'])
+				#pywikibot.output((now-date))
+				pywikibot.output("from then to now: %s, that is %i hours" % ((now-date), ((now-date).seconds/3600) + (now-date).days*24))
 				
 				if self.dict['archiver'][type]:
 				# Si l'archivage des requêtes est activé.			
@@ -594,7 +596,7 @@ class TreatementBot:
 					archive_page = previous_archive_page
 				
 				pywikibot.output(archive_page)
-				pywikibot.output(text_to_archive)
+				#pywikibot.output(text_to_archive)
 				
 				# La variable archiveNumber contient à présent le numéro
 				# de la page d'archive en cours.
@@ -679,10 +681,10 @@ class TreatementBot:
 				# ainsi que de la apge d'archive
 				comment = (u"Archivage de %i requêtes" % len(requests_to_archive))
 				try:
-					pywikibot.showDiff(page_en_cours.get(), text)
+		# pwb_error			pywikibot.showDiff(page_en_cours.get(), text)
 					pywikibot.output('******************************************************')
-					if archive_page.exists():
-						pywikibot.showDiff(archive_page.get(), new_text)
+		# pwb_error			if archive_page.exists():
+		# pwb_error				pywikibot.showDiff(archive_page.get(), new_text)
 					page_en_cours.put(text, comment = (comment + u" vers %s" % archive_page.title(asLink = True)))
 					archive_page.put(new_text, comment = comment)
 				except Exception, myexception:
