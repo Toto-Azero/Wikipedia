@@ -228,7 +228,10 @@ class AnalyserBot:
 	
 	def return_demandeur(self, section):
 		try:
-			if (u"Message déposé par [[Utilisateur" in section) or (u"Question déposée par [[Utilisateur" in section):
+			if (u"Message déposé par {{u|" in section) or (u"Question déposée par {{u|" in section):
+				pywikibot.output(u"Demandeur trouvé")
+				name = re.search(u'\n(?:Message déposé|Question déposée) par \{\{u\|([^\|}]+)\}\}', section).group(1)
+			elif (u"Message déposé par [[Utilisateur" in section) or (u"Question déposée par [[Utilisateur" in section):
 				pywikibot.output(u"Demandeur enregistré")
 				name = re.search(u'\n(?:Message déposé|Question déposée) par \[\[Utilisateur:([^\|]+)\|', section).group(1)
 			elif (u"Message déposé par [[Spécial:Contributions" in section) or (u"Question déposée par [[Spécial:Contributions" in section):
