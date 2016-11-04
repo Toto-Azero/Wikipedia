@@ -226,7 +226,7 @@ def process(day):
         if dl:
             page_pas = Page(Site(), "Discussion:"+page["title"]+"/Suppression")
             if page_pas.exists() and re.search('\{\{\ ?Article supprimé', page_pas.get(), re.I):
-                comment += ' - %s ([[%s|PàS]])' % (page["title"], page_pas.title())
+                comment += u' - %s (malgré [[%s|PàS]])' % (page["title"], page_pas.title())
                 gras = "'''"
             r = ("* {g}{{{{a-court|{title}}}}} <small>([[{pas}|PàS]])</small> supprimé le {date} recréé par {{{{u|{user}}}}}{g} \n"
                     .format(title = wiki_param(page["title"]) ,
