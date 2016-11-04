@@ -216,17 +216,24 @@ def process(day):
     start = to_date(day)
     end = to_date(day+ONE_DAY)
     result = "\n== {} ==\n".format(format_date(day))
+    comment = ''
     for i,page in enumerate(creation_log(start,end),1):
+        gras = ''
         if params.verbose:
             print (i,page["timestamp"])
     
         dl = deletelog(page["title"])
         if dl:
-            r = ("* {{{{a-court|{title}}}}} <small>([[{pas}|PàS]])</small> supprimé le {date} recréé par {{{{u|{user}}}}} \n"
+            page_pas = Page(Site(), "Discussion:"+page["title"]+"/Suppression")
+            if page_pas.exists() and re.search('\{\{\ ?Article supprimé', page_pas.get(), re.I):
+                comment += ' - %s ([[%s|PàS]])' % (page["title"], page_pas.title())
+                gras = "'''"
+            r = ("* {g}{{{{a-court|{title}}}}} <small>([[{pas}|PàS]])</small> supprimé le {date} recréé par {{{{u|{user}}}}}{g} \n"
                     .format(title = wiki_param(page["title"]) ,
-                            pas = wiki_param("Discussion:"+page["title"]+"/Suppression"),
+                            pas =  page_pas.title()),
                             user = wiki_param(page["user"]),
-                            date = format_date(from_date(dl["timestamp"]))))
+                            date = format_date(from_date(dl["timestamp"])),
+                            g = gras)
             if params.verbose:
                 print(r)
             result += r
@@ -237,7 +244,7 @@ def process(day):
         result = page.get()+result
     except NoPage:
         pass
-    page.put(result,comment="Journal des recréations ({day})".format(day=format_date(day)))
+    page.put(result,comment="Journal des recréations ({day})".format(day=format_date(day)) + comment)
 
 if __name__ == "__main__" : 
 
