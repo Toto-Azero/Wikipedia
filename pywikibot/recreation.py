@@ -261,8 +261,6 @@ if __name__ == "__main__" :
     params = parser.parse_args()
     if sys.version_info < (3, 0):
         params.prefix = params.prefix.decode('utf-8')#params.prefix.decode(locale.getpreferredencoding())
-    if "'" in params.prefix:
-        input("Attention ! Le paramètre \"préfix\" contient des ' ce qui n'est pas nécéssaire. Continuer ?")
     Site().forceLogin()    
     end = datetime.today() - ONE_DAY
     with open("recreation.timestamp.txt") as ts:
