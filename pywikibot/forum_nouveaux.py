@@ -276,16 +276,7 @@ class AnalyserBot:
 		
 		talk_page = demandeur.getUserTalkPage()
 		
-		if talk_page.isRedirectPage():
-			talk_page = talk_page.getRedirectTarget()
-		
-		if not talk_page.exists():
-			text = u""
-		else:
-			text = talk_page.get()
-		
 		comment = u"/* Concernant votre demande sur le Forum des nouveaux */ nouvelle section"
-				
 		pywikibot.output(time)
 		ts = pywikibot.Timestamp.fromISOformat(str(time))
 		pywikibot.output('phase 1')
@@ -293,14 +284,27 @@ class AnalyserBot:
 		
 		#warning_message = u"{{subst:Wikipédia:Forum des nouveaux/Réponse|%s|~~~~|user=%s|date=%s (UTC)|oldid=%s}}" % (titre_section_MediaWiki, user_text, date, newid)
 		warning_message = u"\n\n{{subst:Utilisateur:ZéroBot/Forum des nouveaux/Réponse|%s|~~~~|user=%s|oldid=%s|id=%s}}" % (titre_section_MediaWiki, user.name(), newid, self.id)
-		
 		pywikibot.output(warning_message)
-		text += warning_message
-		if not talk_page.exists():
-			text = text.strip()
-		pywikibot.output(text)
 		
-		talk_page.put(text, comment, minorEdit=False)
+		if talk_page.isRedirectPage():
+			talk_page = talk_page.getRedirectTarget()
+		
+		if talk_page.isFlowPage():
+			board = pywikibot.flow.Board(site, talk_page.title())
+			board.new_topic(u'Concernant votre demande sur le Forum des nouveaux', warning_message)
+			
+		else:
+			if not talk_page.exists():
+				text = u""
+			else:
+				text = talk_page.get()
+			
+			text += warning_message
+			if not talk_page.exists():
+				text = text.strip()
+			pywikibot.output(text)
+
+			talk_page.put(text, comment, minorEdit=False)
 		
 		self.sections_warned.append(section)
 		return True
