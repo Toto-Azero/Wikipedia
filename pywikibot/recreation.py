@@ -225,6 +225,8 @@ def process(day):
         dl = deletelog(page["title"])
         if dl:
             page_pas = Page(Site(), "Discussion:" + page["title"] + "/Suppression")
+            if page_pas.isRedirectPage():
+                page_pas = page_pas.getRedirectTarget()
             if page_pas.exists() and re.search(r'article supprimé', page_pas.get(), re.I):
                 if re.search(r'\{\{ ?article supprimé[^\}]*\d{1,2} (\S* \d{4}) à', page_pas.get(), re.I):
                     date = u' de %s' % re.search(r'\{\{ ?article supprimé[^\}]*\d{1,2} (\S* \d{4}) à', page_pas.get(), re.I).group(1)
