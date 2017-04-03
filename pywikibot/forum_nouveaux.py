@@ -23,11 +23,15 @@ Dernières modifications :
 # Distributed under the terms of the GNU GPLv3 license
 # http://www.gnu.org/licenses/gpl.html
 #
-__version__ = '0570'
-__date__ = '2014-08-31 22:03:30 (CEST)'
+__version__ = '0600'
+__date__ = '2017-04-03 11:35:20 (CEST)'
 #
-import pywikibot, complements
-import re, urllib, _mysql
+import pywikibot
+from pywikibot import flow
+import complements
+import re
+import urllib
+import _mysql
 import almalog2
 
 class AnalyserBot:
@@ -283,22 +287,24 @@ class AnalyserBot:
 		date = u"le %s %s à %s" % (ts.strftime(u"%d"), self.les_mois[int(ts.strftime(u"%m")) - 1], ts.strftime(u"%H:%M"))
 		
 		#warning_message = u"{{subst:Wikipédia:Forum des nouveaux/Réponse|%s|~~~~|user=%s|date=%s (UTC)|oldid=%s}}" % (titre_section_MediaWiki, user_text, date, newid)
-		warning_message = u"\n\n{{subst:Utilisateur:ZéroBot/Forum des nouveaux/Réponse|%s|~~~~|user=%s|oldid=%s|id=%s}}" % (titre_section_MediaWiki, user.name(), newid, self.id)
-		pywikibot.output(warning_message)
+		
 		
 		if talk_page.isRedirectPage():
 			talk_page = talk_page.getRedirectTarget()
 		
 		if talk_page.isFlowPage():
-			board = pywikibot.flow.Board(site, talk_page.title())
-			board.new_topic(u'Concernant votre demande sur le Forum des nouveaux', warning_message)
-			
+			board = flow.Board(talk_page)
+			warning_message = u"\n\n{{subst:Utilisateur:ZéroBot/Forum des nouveaux/Réponse|%s|~~~~|user=%s|oldid=%s|id=%s|titre=0}}" % (titre_section_MediaWiki, user.name(), newid, self.id)
+			pywikibot.output(warning_message)
+			board.new_topic(u'Concernant votre demande sur le Forum des nouveaux', warning_message)	
 		else:
 			if not talk_page.exists():
 				text = u""
 			else:
 				text = talk_page.get()
 			
+			warning_message = u"\n\n{{subst:Utilisateur:ZéroBot/Forum des nouveaux/Réponse|%s|~~~~|user=%s|oldid=%s|id=%s|titre=1}}" % (titre_section_MediaWiki, user.name(), newid, self.id)
+			pywikibot.output(warning_message)
 			text += warning_message
 			if not talk_page.exists():
 				text = text.strip()
