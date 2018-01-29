@@ -91,7 +91,7 @@ Distribué par [[Utilisateur:ZéroBot|ZéroBot]], le ~~~~~"""
 		}
 		
 		self.titre_message = u"Concernant votre demande de restauration de la page [[%(titre_page)s]]"
-		self.resume = u"/* Concernant votre demande de restauration de la page %(titre_page)s */ nouvelle section"
+		self.resume = u"/* Concernant votre demande de restauration de la page [[%(titre_page)s]] */ nouvelle section"
 		self.match_titre_requete = re.compile(u"== *([^=].*?) *==")
 		
 		self.whitelist_page = pywikibot.Page(self.site, u'Utilisateur:ZéroBot/Whitelist')
@@ -277,12 +277,13 @@ Distribué par [[Utilisateur:ZéroBot|ZéroBot]], le ~~~~~"""
 				page_discussion_demandeur = demandeur.getUserTalkPage()
 				pywikibot.output(page_discussion_demandeur)
 				
-				m = re.search(u"\[ *\[ *(?P<titre_page>.*) *\] *\]", titre_section)
+				m = re.findall(u"\[ *\[ *(?P<titre_page>.*?) *\] *\]", titre_section)
 				if not m:
 					pywikibot.output(u'Titre de la page concernée introuvable !')
 					continue
 					
-				titre_page_concernee = m.group('titre_page').strip()
+				titre_page_concernee = m[0] # Si plusieurs titres sont présents, vérifier arbitrairement que le premier
+				titre_pages_concernees = u']], [['.join(m)
 				pywikibot.output(titre_page_concernee)
 					
 				# Vérifier si une PàS technique pour la restauration a été
@@ -353,18 +354,18 @@ Distribué par [[Utilisateur:ZéroBot|ZéroBot]], le ~~~~~"""
 					text = page_discussion_demandeur.get()
 					newtext = text
 					newtext += '\n\n'
-					newtext += u"== %s ==" % self.titre_message % {'titre_page': titre_page_concernee}
+					newtext += u"== %s ==" % self.titre_message % {'titre_page': titre_pages_concernees}
 					newtext += '\n'
 					newtext += message
 		# pwb_error			pywikibot.showDiff(page_discussion_demandeur.get(), newtext)
 				else:
-					newtext = u"== %s ==" % self.titre_message % {'titre_page': titre_page_concernee}
+					newtext = u"== %s ==" % self.titre_message % {'titre_page': titre_pages_concernees}
 					newtext += '\n'
 					newtext += message
 					pywikibot.output(newtext)
 				
 				
-				comment = self.resume % {'titre_page': titre_page_concernee}
+				comment = self.resume % {'titre_page': titre_pages_concernees}
 				pywikibot.output(comment)
 				
 				try:
