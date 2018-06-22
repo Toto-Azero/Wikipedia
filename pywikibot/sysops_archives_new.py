@@ -19,6 +19,7 @@ Différences avec la génération 1.0 :
 NB : La suppression des requêtes traitées reste toujours possible.
 
 Dernières corrections :
+* 3255 : correction d'un problème causé par une page d'archive sans section
 * 3252 : gestion (pas très propre) du paramètre "encours"
 * 3250 : résolution du "bug de la nouvelle année", qui conduisait le bot
 		 à mal archiver les requêtes de la dernière semaine de l'année
@@ -28,13 +29,14 @@ Dernières corrections :
 
 #
 # (C) Toto Azéro, 2011-2016
+# (C) Framawiki, 2018
 #
 # Distribué sous licence GNU GPLv3
 # Distributed under the terms of the GNU GPLv3 license
 # http://www.gnu.org/licenses/gpl.html
 #
-__version__ = '3252'
-__date__ = '2016-02-14 18:45:40 (CET)'
+__version__ = '$Id: sysops_archives_new.py 3255 2016-01-04 22:52:30 (CET) Framawiki $'
+__date__ = '2016-01-04 22:52:30 (CET)'
 #
 
 import almalog2
@@ -411,6 +413,9 @@ class TreatementBot:
 		
 		titres = complements.extract_titles(text, beginning = "", match_title = self.match_titre_requete)
 		sections = complements.extract_sections(text, titres)
+		if not sections:
+			pywikibot.output(u"Aucune section dans la page !")
+			continue
 		
 		now = datetime.datetime.now()
 		#now = now + datetime.timedelta(days=11 - now.day) #debug : pour être le 11#			
