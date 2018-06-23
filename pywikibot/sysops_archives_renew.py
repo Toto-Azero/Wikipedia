@@ -14,22 +14,59 @@ Dernières corrections :
 """
 
 #
-# (C) Toto Azéro, 2011-2015
+# (C) Toto Azéro, 2011-2017
 # (C) Framawiki, 2018
 #
 # Distribué sous licence GNU GPLv3
 # Distributed under the terms of the GNU GPLv3 license
 # http://www.gnu.org/licenses/gpl.html
 #
-__version__ = '$Id: sysops_archives_renew.py 4000 2016-01-04 22:52:30 (CET) Framawiki $'
+__version__ = '$Id: sysops_archives_renew.py 3000 2016-01-04 22:52:30 (CET) Framawiki $'
 __date__ = '2016-01-04 22:52:30 (CET)'
 #
 
+import almalog2
 import pywikibot
 from pywikibot import config, page, textlib
 import locale, re
 from datetime import datetime
 import complements
+
+class PutQueue:
+	def __init__(self):
+		self.queue = []
+	
+	def add(self, page, text, comment):
+		self.queue.append((page, text, comment))
+	
+	def safe_put(self, page, text, comment):
+		try:
+			page.put(text, comment = comment)
+		except pywikibot.SpamfilterError as errorBlacklist:
+			text.replace(errorBlacklist.url, "<nowiki>%s</nowiki>" % errorBlacklist)
+			self.site.unlock_page(page) # Strange bug, page locked after the error
+			page.put(text, comment = comment)
+	
+	def put_all(self):
+		total_put = 0
+		try:
+			for li in self.queue:
+				page, text, comment = li
+				self.safe_put(page, text, comment)
+				total_put += 1
+		except Exception, myexception:
+			#e = sys.exc_info()
+			#pywikibot.output(e)
+			
+			if total_put == 0:
+				pywikibot.output("WARNING: Nothing was put, and nothing will be")
+				raise myexception
+			else:
+				pywikibot.output("CRITICAL: Some things were put, you may have to undo changes!")				
+				almalog2.error('sysops_archives', '\nWhile doing %s\nCRITICAL: Some things were already put, you may have to undo changes!'
+						% page.title())
+				raise myexception
+					
 
 class TreatementBot:
 	def __init__(self, raccourci):
@@ -44,10 +81,13 @@ class TreatementBot:
 			- de l'éventuelle page d'archivage des requêtes acceptées (self.accepted_page)
 			- de l'éventuelle page d'archivage des requêtes refusées (self.refused_page)
 		
-		TODO (B):
+		TODO:
 			- utiliser le paramètre 'raccourci' supportée par la fonction pour
 			  prédéfinir la définition de chaque variable précédemment citée pour
 			  l'ensemble des pages de requêtes aux admins traitées (RA, DR, DPP, DRP, DIPP)
+			  
+		WARNING : self.accepted_page doit être différent de self.refused_page
+		TODO: corriger l'implémentation pour que ce ne soit pas le cas
 		"""
 		
 		self.site = pywikibot.Site('fr', 'wikipedia')
@@ -92,7 +132,7 @@ class TreatementBot:
 		
 		self.match_date = re.compile(u"(?P<day>[0-9]+) *(?P<month>[^ ]+) *(?P<year>20[0-9]{2}) *à *(?P<hours>[0-9]{2})[h:](?P<minutes>[0-9]{2})")
 		self.match_titre_requete = re.compile(u"(\n|^)== *([^=].+[^=]) *==")
-	
+				
 	def analyse_section(self, section, template_title = None):
 		"""
 		Analyse une section et retourne un dictionnaire contenant la date et le statut
@@ -107,8 +147,8 @@ class TreatementBot:
 		statut = None
 		templates = textlib.extract_templates_and_params(section)
 		# templates est du type :
-		#     [(u'RA début', {u'date': u'27 février 2011 à 14:56 (CET)'
-		#     , u'statut': u'oui'}), (u'RA fin', {})]
+		#	 [(u'RA début', {u'date': u'27 février 2011 à 14:56 (CET)'
+		#	 , u'statut': u'oui'}), (u'RA fin', {})]
 		# avec éventuellement d'autres modèles, utilisés dans la requête par 
 		# les contributeurs, et se trouvant entre le {{RA début}} et le {{RA fin}}
 		
@@ -203,6 +243,9 @@ class TreatementBot:
 		'': list() # requêtes sans statut ou ne répondant pas à la contrainte du délai
 		}
 		
+		if not sections:
+			sections = []
+			
 		for numero_section in sections:
 			pywikibot.output('--------------------------------')
 			pywikibot.output(titres[numero_section])
@@ -244,8 +287,8 @@ class TreatementBot:
 				# Il est préférable de reformater la date, toujours au format string
 				# avant de la parser avec la commande datetime.strptime.
 				# Ici, la date est normalisée suivant le format suivant :
-				#        jour mois année heures:minutes (tout en chiffres)
-				# ex :    13 02 2012 23:34
+				#		jour mois année heures:minutes (tout en chiffres)
+				# ex :	13 02 2012 23:34
 				# On préfèrera utiliser exclusivement des chiffres pour éviter
 				# des problèmes liés aux accents sur le nom de certains mois, 
 				# tels février, décembre et août.
@@ -348,19 +391,15 @@ class TreatementBot:
 		comment = u"Classement des requêtes (%i requête(s) acceptée(s), %i requête(s) refusée(s), %i requête(s) en attente, %i requête(s) classées sans suite)" % (len(dict_requetes_par_statut['oui']), len(dict_requetes_par_statut['non']), len(dict_requetes_par_statut['attente']), len(dict_requetes_par_statut['sanssuite']))
 		#pywikibot.output(self.text)
 		#pywikibot.showDiff(self.main_page.get(), self.text)
-		self.main_page.put(self.text, comment = comment)
+		self.put_queue.add(self.main_page, self.text, comment = comment)
 		pywikibot.output(comment)
 		
 		comment = u"Classement des requêtes : %i requête(s) acceptée(s)" % len(dict_requetes_par_statut['oui']) 
-		self.accepted_page.put(text_accepted, comment = comment)
+		self.put_queue.add(self.accepted_page, text_accepted, comment = comment)
 		pywikibot.output(comment)
 		
 		comment = u"Classement des requêtes : %i requête(s) refusée(s)" % len(dict_requetes_par_statut['non'])
-		self.refused_page.put(text_refused, comment = comment)
-		pywikibot.output(comment)
-		
-		comment = u"Classement des requêtes : %i requête(s) sanssuite(s)" % len(dict_requetes_par_statut['sanssuite'])
-		self.sanssuite_page.put(text_sanssuite, comment = comment)
+		self.put_queue.add(self.refused_page, text_refused, comment = comment)
 		pywikibot.output(comment)
 		
 	def archivage(self):
@@ -399,13 +438,13 @@ class TreatementBot:
 			
 			titres = complements.extract_titles(text, beginning = "", match_title = self.match_titre_requete)
 			sections = complements.extract_sections(text, titres)
-			if not sections:
-				pywikibot.output(u"Aucune section dans la page !")
-				continue
 			
 			text_to_archive = u""
 			requests_to_archive = []
 			requests_to_delete = []
+			
+			if not sections:
+				sections = []
 			
 			# Début de la boucle d'analyse de chacune des sections, au cas par cas.
 			for numero_section in sections:
@@ -429,8 +468,8 @@ class TreatementBot:
 					# Il est préférable de reformater la date, toujours au format string
 					# avant de la parser avec la commande datetime.strptime.
 					# Ici, la date est normalisée suivant le format suivant :
-					#        jour mois année heures:minutes (tout en chiffres)
-					# ex :    13 02 2012 23:34
+					#		jour mois année heures:minutes (tout en chiffres)
+					# ex :	13 02 2012 23:34
 					# On préfèrera utiliser exclusivement des chiffres pour éviter
 					# des problèmes liés aux accents sur le nom de certains mois, 
 					# tels février, décembre et août.
@@ -567,7 +606,7 @@ class TreatementBot:
 						main_archive_page = pywikibot.Page(self.site, self.main_page.title() + u"/Archives")
 						text_temp = main_archive_page.get()
 						text_temp = re.sub(u"(\# *\[\[%s\]\]) *" % old_archive_page.title(asLink = False), u"\\1 (jusqu'au %s)\n# %s" % (last_date, archive_page.title(asLink = True)), text_temp)
-						main_archive_page.put(text_temp, comment = u"Création d'une nouvelle page d'archives")
+						self.put_queue.add(main_archive_page, text_temp, comment = u"Création d'une nouvelle page d'archives")
 						
 					else:
 						pywikibot.output(u"Moins de 250 requêtes archivées -> page d'archive actuelle (n°%i)" % archiveNumber)
@@ -584,12 +623,14 @@ class TreatementBot:
 				# ainsi que de la apge d'archive
 				comment = (u"Archivage de %i requêtes" % len(requests_to_archive))
 				try:
-		# pwb_error			pywikibot.showDiff(page_en_cours.get(), text)
 					pywikibot.output('******************************************************')
-		# pwb_error			if archive_page.exists():
-		# pwb_error				pywikibot.showDiff(archive_page.get(), new_text)
-					page_en_cours.put(text, comment = (comment + u" vers %s" % archive_page.title(asLink = True)))
-					archive_page.put(new_text, comment = comment)
+					self.put_queue.add(page_en_cours, text, comment = (comment + u" vers %s" % archive_page.title(asLink = True)))
+					self.put_queue.add(archive_page, new_text, comment = comment)
+
+					# do it now, otherwise conflicts (eg. if accepted and refused
+					# go to the same place, the second update will override the
+					# first one, see https://fr.wikipedia.org/w/index.php?diff=133677130&diffonly=1)
+					self.put_queue.put_all()
 				except Exception, myexception:
 					pywikibot.output("erreur type 2")
 					#print u'%s %s' % (type(myexception), myexception.args)
@@ -597,7 +638,7 @@ class TreatementBot:
 				
 			elif self.dict['supprimer'][type]:
 				comment = (u"Suppression de %i requêtes" % len(requests_to_delete))
-				page_en_cours.put(text, comment = comment)
+				self.put_queue.add(page_en_cours, text, comment = comment)
 			
 	def traitement(self):
 		"""
@@ -605,8 +646,11 @@ class TreatementBot:
 			- classement
 			- archivage
 		"""
-		#self.classement()
+		self.put_queue = PutQueue()
+		self.classement()
+		self.put_queue.put_all()
 		self.archivage()
+		self.put_queue.put_all()
 
 
 def main():
@@ -619,16 +663,29 @@ def main():
 	liste_raccourcis = ['drp']
 	
 	for raccourci in liste_raccourcis:
-			pywikibot.output(u"""
+		#try:
+		pywikibot.output(u"""
 ************************************************
-|              TRAITEMENT DE %s              |
+|			  TRAITEMENT DE %s			  |
 ************************************************""" %  raccourci)
-			bot = TreatementBot(raccourci = raccourci)
-			bot.traitement()
-			pywikibot.output(u"""
+		bot = TreatementBot(raccourci = raccourci)
+		bot.traitement()
+		pywikibot.output(u"""
 ************************************************
-|          FIN DU TRAITEMENT DE %s            |
+|		  FIN DU TRAITEMENT DE %s			|
 ************************************************""" %  raccourci)
+		#except Exception, myexception:
+		#	pywikibot.output(u'erreur lors du traitement de %s' % raccourci)
+		#	pywikibot.output(u'%s %s' % (type(myexception), myexception.args))
+		#	continue
 	
 if __name__ == '__main__':
-    main()
+	try:
+		main()
+	except Exception, myexception:
+		almalog2.error(u'sysops_archives', u'%s %s'% (type(myexception), myexception.args))
+		#print u'%s %s' % (type(myexception), myexception.args)
+		raise
+	finally:
+		almalog2.writelogs(u'sysops_archives')
+		pywikibot.stopme()
