@@ -25,6 +25,7 @@ import os
 import MySQLdb
 import time
 import datetime
+import traceback
 
 def encode_sql(string):
 	return string.replace('"', '\\"').replace(' ', '_').encode('utf-8')
@@ -311,7 +312,7 @@ ORDER BY count_changes DESC;" % {
 				text += u"""\n|-
 | style="text-align:center; font-size:130%%; color:white; background:%(color)s; padding: 0 0.2em" | %(actions_str)s
 | style="padding: 0.4em;" | [[%(page)s]]%(diff)s""" % {'color':color, 'actions_str':actions_str, \
-                                               'page':decode_sql(page), 'diff':diff_str}
+					       'page':decode_sql(page), 'diff':diff_str}
 		
 		text += "\n"
 		
@@ -392,13 +393,13 @@ if __name__ == '__main__':
 				bot = BotArticlesChauds(page, modele, dry)
 				if not bot.run():
 					pywikibot.output(u'Page %s not done' % page.title())
-			except Exception, myexception:
-				pywikibot.output(u'%s %s'% (type(myexception), myexception.args))
+			except Exception:
+				pywikibot.output(traceback.format_exc())
 				pywikibot.output("An error occurred while doing page %s" % page.title())
-	except Exception, myexception:
+	except Exception:
 		if not (test or dry):
-			pywikibot.output(u'%s %s'% (type(myexception), myexception.args))
-			almalog2.error(u'maj_articles_manquants', u'%s %s'% (type(myexception), myexception.args))
+			pywikibot.output(traceback.format_exc())
+			almalog2.error(u'maj_articles_manquants', traceback.format_exc())
 		raise
 	finally:
 		pywikibot.stopme()
