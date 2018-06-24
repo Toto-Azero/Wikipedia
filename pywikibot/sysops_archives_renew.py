@@ -2,25 +2,15 @@
 # -*- coding: utf-8  -*-
 
 """
-Classement et archivage des requêtes aux sysops.
+Classement et archivage des requêtes aux sysops (génération 3.0).
 
 Ce script classe les requêtes d'une page de requêtes aux sysops.
 
-TODO (A):
-	- fix error "No text to be save"
-	✓ mettre un 'try' dans les boucles "for numero_section in sections:" pour
-	  éviter qu'une section ne puisse tout faire bugguer… 
-	- faire des fonctions pour les morceaux de codes en doubles (ou plus ?)
+Différences avec la génération 1.0 :
+	- ajout d'un quatrième cas au paramètre status: sanssuite, en plus de rien, oui, non
 	
 Dernières corrections :
-* 3420 : correction d'un problème causé par une page d'archive sans section
-* 3410 : erreur d'override
-* 3400 : PutQueue with safe_put : tout publier d'un coup,
-         pour chaque page de requêtes
-* 3000 : introduction de safe_put, pour la gestion des URL blacklistés
-* 2900 : gestion statuts autre et autreavis pour DRP
-* 2855 : gestion de la date (type 7h53 en plus de 7:53)
-* 2853 : correction d'un problème causé par la présence d'un antislash suivi d'un nombre dans la page
+* 
 """
 
 #
@@ -31,7 +21,7 @@ Dernières corrections :
 # Distributed under the terms of the GNU GPLv3 license
 # http://www.gnu.org/licenses/gpl.html
 #
-__version__ = '$Id: sysops_archives.py 2905 2016-01-04 22:52:30 (CET) Framawiki $'
+__version__ = '$Id: sysops_archives_renew.py 3000 2016-01-04 22:52:30 (CET) Framawiki $'
 __date__ = '2016-01-04 22:52:30 (CET)'
 #
 
@@ -105,110 +95,17 @@ class TreatementBot:
 		###
 		# Définitions particulières à la page de requêtes
 		###
-		if raccourci == 'ra':
+		if raccourci == 'drp':
 			self.dict = {
-			'archiver': {'acceptees': False, 'refusees': True},
-			'supprimer': {'acceptees': True, 'refusees': False},
-			'delai': {'classement': 12, 'archivage': 4*24, 'suppression': 4*24} # En heures,
-			}
-			
-			self.main_page_test = pywikibot.Page(self.site, u"Utilisateur:ZéroBot/Wikipédia:Requête aux administrateurs")
-			self.accepted_page_test = pywikibot.Page(self.site, u"Utilisateur:ZéroBot/Wikipédia:Requête aux administrateurs/Requêtes traitées")
-			self.refused_page_test = pywikibot.Page(self.site, u"Utilisateur:ZéroBot/Wikipédia:Requête aux administrateurs/Requêtes refusées")
-
-			self.main_page = pywikibot.Page(self.site, u"Wikipédia:Requête aux administrateurs")
-			self.accepted_page = pywikibot.Page(self.site, u"Wikipédia:Requête aux administrateurs/Requêtes traitées")
-			self.refused_page = pywikibot.Page(self.site, u"Wikipédia:Requête aux administrateurs/Requêtes refusées")
-			
-			self.text_below_waiting_requests = u""
-			self.text_below_untreated_requests = u"\n{{Wikipédia:Requête aux administrateurs/Note:Requêtes à traiter}}"
-			self.template_prefix = "RA"
-			self.template_title = u"%s début" % self.template_prefix
-			self.template_end_title = u"%s fin" % self.template_prefix
-			self.archivePrefix = u"Archives"
-			
-		elif raccourci == 'dr':
-			self.dict = {
-			'archiver': {'acceptees': True, 'refusees': True},
-			'supprimer': {'acceptees': False, 'refusees': False},
+			'archiver': {'acceptees': True, 'refusees': True, 'sanssuite': True},
+			'supprimer': {'acceptees': False, 'refusees': False, 'sanssuite': False},
 			'delai': {'classement': 24, 'archivage': 7*24, 'suppression': 7*24} # En heures,
 			}
 			
-			self.main_page = pywikibot.Page(self.site, u"Wikipédia:Demande de renommage")
-			self.accepted_page = pywikibot.Page(self.site, u"Wikipédia:Demande de renommage/Traitées")
-			self.refused_page = pywikibot.Page(self.site, u"Wikipédia:Demande de renommage/Refusées")
-			
-			self.text_below_waiting_requests = u""
-			self.text_below_untreated_requests = u""
-			self.template_prefix = "DR"
-			self.template_title = u"%s début" % self.template_prefix
-			self.template_end_title = u"%s fin" % self.template_prefix
-			self.archivePrefix = u"Archives"
-			
-		elif raccourci == 'dpp':
-			self.dict = {
-			'archiver': {'acceptees': False, 'refusees': True},
-			'supprimer': {'acceptees': True, 'refusees': False},
-			'delai': {'classement': 24, 'archivage': 7*24, 'suppression': 7*24} # En heures,
-			}
-			
-			self.main_page = pywikibot.Page(self.site, u"Wikipédia:Demande de protection de page")
-			self.accepted_page = pywikibot.Page(self.site, u"Wikipédia:Demande de protection de page/Traitées")
-			self.refused_page = pywikibot.Page(self.site, u"Wikipédia:Demande de protection de page/Refusées")
-			
-			self.text_below_waiting_requests = u"\n{{Wikipédia:Requête aux administrateurs/Note:Requêtes en cours}}"			
-			self.text_below_untreated_requests = u"\n{{Wikipédia:Requête aux administrateurs/Note:Requêtes à traiter}}"
-			self.template_prefix = "DPP"
-			self.template_title = u"%s début" % self.template_prefix
-			self.template_end_title = u"%s fin" % self.template_prefix
-			self.archivePrefix = u"Archives"
-			
-		elif raccourci == 'dipp':
-			self.dict = {
-			'archiver': {'acceptees': True, 'refusees': True},
-			'supprimer': {'acceptees': False, 'refusees': False},
-			'delai': {'classement': 24, 'archivage': 7*24, 'suppression': 7*24} # En heures,
-			}
-			
-			self.main_page = pywikibot.Page(self.site, u"Wikipédia:Demande d'intervention sur une page protégée")
-			self.accepted_page = pywikibot.Page(self.site, u"Wikipédia:Demande d'intervention sur une page protégée/Traitées")
-			self.refused_page = pywikibot.Page(self.site, u"Wikipédia:Demande d'intervention sur une page protégée/Refusées")
-			
-			self.text_below_waiting_requests = u"\n{{Wikipédia:Requête aux administrateurs/Note:Requêtes en cours}}\n\n<!-- FIN DES REQUÊTES EN COURS =============================================================== -->"			
-			self.text_below_untreated_requests = u"\n{{Wikipédia:Requête aux administrateurs/Note:Requêtes à traiter}}"
-			self.template_prefix = "DIPP"
-			self.template_title = u"%s début" % self.template_prefix
-			self.template_end_title = u"%s fin" % self.template_prefix
-			self.archivePrefix = u"Archives/"
-			
-		elif raccourci == 'dims':
-			self.dict = {
-			'archiver': {'acceptees': True, 'refusees': True},
-			'supprimer': {'acceptees': False, 'refusees': False},
-			'delai': {'classement': 48, 'archivage': 15*24, 'suppression': 15*24} # En heures,
-			}
-			
-			self.main_page = pywikibot.Page(self.site, u"Wikipédia:Demande d'intervention sur un message système")
-			self.accepted_page = pywikibot.Page(self.site, u"Wikipédia:Demande d'intervention sur un message système/Traitées")
-			self.refused_page = pywikibot.Page(self.site, u"Wikipédia:Demande d'intervention sur un message système/Refusées")
-			
-			self.text_below_waiting_requests = u""			
-			self.text_below_untreated_requests = u"\n{{Wikipédia:Requête aux administrateurs/Note:Requêtes à traiter}}"
-			self.template_prefix = "DIMS"
-			self.template_title = u"%s début" % self.template_prefix
-			self.template_end_title = u"%s fin" % self.template_prefix
-			self.archivePrefix = u"Archives"
-			
-		elif raccourci == 'test':
-			self.dict = {
-			'archiver': {'acceptees': False, 'refusees': True},
-			'supprimer': {'acceptees': True, 'refusees': False},
-			'delai': {'classement': 24, 'archivage': 7*24, 'suppression': 7*24} # En heures,
-			}
-			
-			self.main_page = pywikibot.Page(self.site, u"User:ZéroBot/Wikipédia:Demande de restauration de page")
-			self.accepted_page = pywikibot.Page(self.site, u"User:ZéroBot/Wikipédia:Demande de restauration de page/Traitées")
-			self.refused_page = pywikibot.Page(self.site, u"User:ZéroBot/Wikipédia:Demande de restauration de page/Refusées")
+			self.main_page = pywikibot.Page(self.site, u"Wikipédia:Demande de restauration de page")
+			self.accepted_page = pywikibot.Page(self.site, u"Wikipédia:Demande de restauration de page/Traitées")
+			self.refused_page = pywikibot.Page(self.site, u"Wikipédia:Demande de restauration de page/Refusées")
+			self.sanssuite_page = pywikibot.Page(self.site, u"Wikipédia:Demande de restauration de page/Sans suite")
 			
 			self.text_below_waiting_requests = u"\n{{Wikipédia:Requête aux administrateurs/Note:Requêtes en cours}}\n<!-- DEBUT DES REQUÊTES EN COURS =============================================================== -->"			
 			self.text_below_untreated_requests = u"\n{{Wikipédia:Requête aux administrateurs/Note:Requêtes à traiter}}\n<!-- DEBUT DES REQUÊTES A TRAITER ========================================== -->"
@@ -250,8 +147,8 @@ class TreatementBot:
 		statut = None
 		templates = textlib.extract_templates_and_params(section)
 		# templates est du type :
-		#     [(u'RA début', {u'date': u'27 février 2011 à 14:56 (CET)'
-		#     , u'statut': u'oui'}), (u'RA fin', {})]
+		#	 [(u'RA début', {u'date': u'27 février 2011 à 14:56 (CET)'
+		#	 , u'statut': u'oui'}), (u'RA fin', {})]
 		# avec éventuellement d'autres modèles, utilisés dans la requête par 
 		# les contributeurs, et se trouvant entre le {{RA début}} et le {{RA fin}}
 		
@@ -279,6 +176,7 @@ class TreatementBot:
 			- 'oui' : la requête a été acceptée
 			- 'non' : la requête a été refusée
 			- 'attente' : la requête est en attente
+			- 'sanssuite' : la requête est close et n'a donnée aucune suite
 		
 		Si le paramètre statut n'est pas renseigné, où s'il ne correspond à aucun des
 		trois statuts connus par le bot, celui-ci ignore la requête, et la laisse où
@@ -341,6 +239,7 @@ class TreatementBot:
 		'oui': list(),
 		'non': list(),
 		'attente': list(),
+		'sanssuite': list(),
 		'': list() # requêtes sans statut ou ne répondant pas à la contrainte du délai
 		}
 		
@@ -360,7 +259,7 @@ class TreatementBot:
 			pywikibot.output('date found: %s' % date)
 			pywikibot.output('statut found: %s' % statut)
 			
-			if statut not in ['oui', 'non', 'attente', 'autreavis', 'autre']:
+			if statut not in ['oui', 'non', 'attente', 'autreavis', 'autre', 'sanssuite']:
 				# Le statut de la requête n'est pas reconnu ou pas pris en charge
 				continue
 			
@@ -388,8 +287,8 @@ class TreatementBot:
 				# Il est préférable de reformater la date, toujours au format string
 				# avant de la parser avec la commande datetime.strptime.
 				# Ici, la date est normalisée suivant le format suivant :
-				#        jour mois année heures:minutes (tout en chiffres)
-				# ex :    13 02 2012 23:34
+				#		jour mois année heures:minutes (tout en chiffres)
+				# ex :	13 02 2012 23:34
 				# On préfèrera utiliser exclusivement des chiffres pour éviter
 				# des problèmes liés aux accents sur le nom de certains mois, 
 				# tels février, décembre et août.
@@ -451,9 +350,15 @@ class TreatementBot:
 		if text_refused:
 			while text_refused[-2:] != '\n\n':
 				text_refused += '\n'
-
 		for requete in dict_requetes_par_statut['non']:
 			text_refused += requete
+			
+		text_sanssuite = self.sanssuite_page.get()
+		if text_sanssuite:
+			while text_sanssuite[-2:] != '\n\n':
+				text_sanssuite += '\n'
+		for requete in dict_requetes_par_statut['sanssuite']:
+			text_sanssuite += requete
 		
 		text_waiting = ""
 		for requete in dict_requetes_par_statut['attente']:
@@ -483,7 +388,7 @@ class TreatementBot:
 		self.text = re.sub(u"\n+(= *[rR]equêtes *à *traiter *= *)", u"\n%s\\1" % text_waiting.replace('\\', u'{[(+-/antislash/-+)]}'), self.text)
 		self.text = self.text.replace(u"{[(+-/antislash/-+)]}", '\\')
 		
-		comment = u"Classement des requêtes (%i requête(s) acceptée(s), %i requête(s) refusée(s), %i requête(s) en attente)" % (len(dict_requetes_par_statut['oui']), len(dict_requetes_par_statut['non']), len(dict_requetes_par_statut['attente']))
+		comment = u"Classement des requêtes (%i requête(s) acceptée(s), %i requête(s) refusée(s), %i requête(s) en attente, %i requête(s) classées sans suite)" % (len(dict_requetes_par_statut['oui']), len(dict_requetes_par_statut['non']), len(dict_requetes_par_statut['attente']), len(dict_requetes_par_statut['sanssuite']))
 		#pywikibot.output(self.text)
 		#pywikibot.showDiff(self.main_page.get(), self.text)
 		self.put_queue.add(self.main_page, self.text, comment = comment)
@@ -513,13 +418,16 @@ class TreatementBot:
 			  d'archives est créée.
 			- vérifier l.475 (new_text = archive_page.get() + '\\n' + text_to_archive)
 		"""
-		to_do = ['acceptees', 'refusees']
+		to_do = ['acceptees', 'refusees', 'sanssuite']
 		for type in to_do:
 			if type == 'acceptees':
 				page_en_cours = self.accepted_page
 				#text = self.accepted_page.get()
 			elif type == 'refusees':
 				page_en_cours = self.refused_page
+				#text = self.refused_page.get()
+			elif type == 'sanssuite':
+				page_en_cours = self.sanssuite_page
 				#text = self.refused_page.get()
 			pywikibot.output(page_en_cours)
 			
@@ -560,8 +468,8 @@ class TreatementBot:
 					# Il est préférable de reformater la date, toujours au format string
 					# avant de la parser avec la commande datetime.strptime.
 					# Ici, la date est normalisée suivant le format suivant :
-					#        jour mois année heures:minutes (tout en chiffres)
-					# ex :    13 02 2012 23:34
+					#		jour mois année heures:minutes (tout en chiffres)
+					# ex :	13 02 2012 23:34
 					# On préfèrera utiliser exclusivement des chiffres pour éviter
 					# des problèmes liés aux accents sur le nom de certains mois, 
 					# tels février, décembre et août.
@@ -752,19 +660,19 @@ def main():
 	except:
 		locale.setlocale(locale.LC_ALL, 'fr_FR')
 	
-	liste_raccourcis = ['dr', 'dpp', 'dipp', 'dims']
+	liste_raccourcis = ['drp']
 	
 	for raccourci in liste_raccourcis:
 		#try:
 		pywikibot.output(u"""
 ************************************************
-|              TRAITEMENT DE %s              |
+|			  TRAITEMENT DE %s			  |
 ************************************************""" %  raccourci)
 		bot = TreatementBot(raccourci = raccourci)
 		bot.traitement()
 		pywikibot.output(u"""
 ************************************************
-|          FIN DU TRAITEMENT DE %s            |
+|		  FIN DU TRAITEMENT DE %s			|
 ************************************************""" %  raccourci)
 		#except Exception, myexception:
 		#	pywikibot.output(u'erreur lors du traitement de %s' % raccourci)
@@ -772,12 +680,12 @@ def main():
 		#	continue
 	
 if __name__ == '__main__':
-    try:
-        main()
-    except Exception, myexception:
-        almalog2.error(u'sysops_archives', u'%s %s'% (type(myexception), myexception.args))
-        #print u'%s %s' % (type(myexception), myexception.args)
-        raise
-    finally:
-        almalog2.writelogs(u'sysops_archives')
-        pywikibot.stopme()
+	try:
+		main()
+	except Exception, myexception:
+		almalog2.error(u'sysops_archives', u'%s %s'% (type(myexception), myexception.args))
+		#print u'%s %s' % (type(myexception), myexception.args)
+		raise
+	finally:
+		almalog2.writelogs(u'sysops_archives')
+		pywikibot.stopme()

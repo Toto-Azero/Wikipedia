@@ -19,6 +19,8 @@ Différences avec la génération 1.0 :
 NB : La suppression des requêtes traitées reste toujours possible.
 
 Dernières corrections :
+* 3400 : PutQueue with safe_put : tout publier d'un coup,
+         pour chaque page de requêtes
 * 3252 : gestion (pas très propre) du paramètre "encours"
 * 3250 : résolution du "bug de la nouvelle année", qui conduisait le bot
 		 à mal archiver les requêtes de la dernière semaine de l'année
@@ -33,16 +35,51 @@ Dernières corrections :
 # Distributed under the terms of the GNU GPLv3 license
 # http://www.gnu.org/licenses/gpl.html
 #
-__version__ = '3252'
-__date__ = '2016-02-14 18:45:40 (CET)'
+__version__ = '3400'
+__date__ = '2016-11-04 19:02:10 (CET)'
 #
 
 import almalog2
 import pywikibot
 from pywikibot import config, page, textlib
-import locale, re
+import locale, re, sys
 import datetime
 import complements
+
+class PutQueue:
+	def __init__(self):
+		self.queue = []
+	
+	def add(self, page, text, comment):
+		self.queue.append((page, text, comment))
+	
+	def safe_put(self, page, text, comment):
+		try:
+			page.put(text, comment = comment)
+		except pywikibot.SpamfilterError as errorBlacklist:
+			text.replace(errorBlacklist.url, "<nowiki>%s</nowiki>" % errorBlacklist)
+			self.site.unlock_page(page) # Strange bug, page locked after the error
+			page.put(text, comment = comment)
+	
+	def put_all(self):
+		total_put = 0
+		try:
+			for li in self.queue:
+				page, text, comment = li
+				self.safe_put(page, text, comment)
+				total_put += 1
+		except Exception, myexception:
+			#e = sys.exc_info()
+			#pywikibot.output(e)
+			
+			if total_put == 0:
+				pywikibot.output("WARNING: Nothing was put, and nothing will be")
+				raise myexception
+			else:
+				pywikibot.output("CRITICAL: Some things were put, you may have to undo changes!")
+				almalog2.error('sysops_archives_new', '\nWhile doing %s\nCRITICAL: Some things were already put, you may have to undo changes!'
+						% page.title())
+				raise myexception
 
 class TreatementBot:
 	def __init__(self, raccourci):
@@ -133,7 +170,7 @@ class TreatementBot:
 		
 		self.match_date = re.compile(u"(?P<day>[0-9]+) *(?P<month>[^ ]+) *(?P<year>20[0-9]{2}) *à *(?P<hours>[0-9]{2}):(?P<minutes>[0-9]{2})")
 		self.match_titre_requete = re.compile(u"(\n|^)== *([^=].+[^=]) *==")
-	
+
 	def analyse_section(self, section, template_title = None):
 		"""
 		Analyse une section et retourne un dictionnaire contenant la date et le statut
@@ -250,6 +287,9 @@ class TreatementBot:
 		'': list() # requêtes sans statut ou ne répondant pas à la contrainte du délai
 		}
 		
+		if not sections:
+			sections = []
+				
 		for numero_section in sections:
 			pywikibot.output('--------------------------------')
 			pywikibot.output(sections[numero_section])
@@ -381,12 +421,12 @@ class TreatementBot:
 		comment = u"Classement des requêtes (%i requête(s) traitée(s), %i requête(s) en attente)" % (len(dict_requetes_par_statut['traitée']), len(dict_requetes_par_statut['attente']))
 		pywikibot.output(self.text)
 		pywikibot.showDiff(self.main_page.get(), self.text)
-		self.main_page.put(self.text, comment = comment)
+		self.put_queue.add(self.main_page, self.text, comment)
 		pywikibot.output(comment)
 		
 		#page = pywikibot.Page(self.site, u"User:ZéroBot/Wikipédia:Requête aux administrateurs/Requêtes traitées")
 		comment = u"Classement des requêtes : %i requête(s) traitée(s)" % len(dict_requetes_par_statut['traitée']) 
-		self.treated_page.put(text_treated, comment = comment)
+		self.put_queue.add(self.treated_page, text_treated, comment)
 		pywikibot.output(comment)
 		
 	def archivage(self):
@@ -420,6 +460,9 @@ class TreatementBot:
 		requests_to_archive = {}
 		texts_requests_to_archive = {}
 		requests_to_delete = []
+			
+		if not sections:
+			sections = []
 			
 		# Début de la boucle d'analyse de chacune des sections, au cas par cas.
 		for numero_section in sections:
@@ -538,8 +581,9 @@ class TreatementBot:
 						#pywikibot.output('******************************************************')
 						#if archive_page.exists():
 							#pywikibot.showDiff(archive_page.get(), new_text)
-						self.treated_page.put(text, comment = (comment + u" vers %s" % archive_page.title(asLink = True)))
-						archive_page.put(new_text, comment = comment)
+						self.put_queue.add(self.treated_page, text, comment = (comment + u" vers %s" % archive_page.title(asLink = True)))
+						
+						self.put_queue.add(archive_page, new_text, comment = comment)
 					except Exception, myexception:
 						pywikibot.output("erreur type 2 : %s %s" % (type(myexception), myexception.args))
 						#print u'%s %s' % (type(myexception), myexception.args)
@@ -547,17 +591,19 @@ class TreatementBot:
 			
 		elif self.dict['supprimer']:
 			comment = (u"Suppression de %i requêtes" % len(requests_to_delete))
-			self.treated_page.put(text, comment = comment)
-			
+			self.put_queue.add(self.treated_page, text, comment = comment)				
+				
 	def traitement(self):
 		"""
 		Traitement complet des requêtes aux admins :
 			- classement
 			- archivage
 		"""
+		self.put_queue = PutQueue()
 		self.classement()
+		self.put_queue.put_all()
 		self.archivage()
-
+		self.put_queue.put_all()
 
 def main():
 	# Configuration de locale
