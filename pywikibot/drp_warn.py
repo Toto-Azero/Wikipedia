@@ -5,6 +5,7 @@
 Avertissement des demandeurs de la réponse des admins sur leur DRP.
 
 Dernières modifications :
+* 1915 : prise en compte des pages de discussion utilisant Flow
 * 1910 : prise en compte du paramètre "sanssuite"
 * 1905 : make regex non-greedy
 * 1901 : il manquait un "not"
@@ -38,6 +39,7 @@ __date__ = '2018-06-22 21:58:00 (CET)'
 #
 
 import pywikibot
+from pywikibot import flow
 import almalog2, complements
 from pywikibot import config, page, textlib
 import locale, re, _mysql, urllib
@@ -55,50 +57,42 @@ class WarnBot:
 		# Les messages 'non' et 'oui' ont trois paramètres qui doivent être précisés :
 		# 'titre_page', 'lien_drp' et 'date_debut_lien_valide'
 		'non': u"""Bonjour,\n
-Ceci est un message automatique vous avertissant que votre demande de restauration pour [[%(titre_page)s]] a été refusée. Afin d'en voir les détails, [[%(lien_drp)s|cliquez ici]]. Ce lien restera actif durant une semaine à compter du %(date_debut_lien_valide)s.\n
-Distribué par [[Utilisateur:ZéroBot|ZéroBot]], le ~~~~~""",
+Ceci est un message automatique vous avertissant que votre demande de restauration pour [[%(titre_page)s]] a été refusée. Afin d'en voir les détails, [[%(lien_drp)s|cliquez ici]]. Ce lien restera actif durant une semaine à compter du %(date_debut_lien_valide)s.""",
 		'oui': u"""Bonjour,\n
 Ceci est un message automatique vous avertissant que votre demande de restauration pour [[%(titre_page)s]] a été acceptée. Afin d'en voir les détails, [[%(lien_drp)s|cliquez ici]]. Ce lien restera actif durant une semaine à compter du %(date_debut_lien_valide)s.\n
-L'article est à nouveau en ligne, nous vous laissons le soin d'y apporter toutes les preuves nécessaires permettant de conforter son admissibilité.\n
-Distribué par [[Utilisateur:ZéroBot|ZéroBot]], le ~~~~~""",
+L'article est à nouveau en ligne, nous vous laissons le soin d'y apporter toutes les preuves nécessaires permettant de conforter son admissibilité.""",
 		
 		# Le message 'attente' a deux paramètres qui doivent être précisés :
 		# 'titre_page', 'lien_drp'
 		'attente': u"""Bonjour,\n
-Ceci est un message automatique vous avertissant que votre demande de restauration pour [[%(titre_page)s]] est en attente d'informations supplémentaires de votre part. Afin d'y apporter tous les arguments et preuves nécessaires, [[%(lien_drp)s|cliquez ici]].\n
-Distribué par [[Utilisateur:ZéroBot|ZéroBot]], le ~~~~~""",
+Ceci est un message automatique vous avertissant que votre demande de restauration pour [[%(titre_page)s]] est en attente d'informations supplémentaires de votre part. Afin d'y apporter tous les arguments et preuves nécessaires, [[%(lien_drp)s|cliquez ici]].""",
 
 		# Le message 'autreavis'/'autre' a deux paramètres qui doivent être précisés :
 		# 'titre_page', 'lien_drp'
 		'autreavis': u"""Bonjour,\n
-Ceci est un message automatique vous avertissant que votre demande de restauration pour [[%(titre_page)s]] est en cours d'examen. Afin d'en voir les détails, [[%(lien_drp)s|cliquez ici]].\n
-Distribué par [[Utilisateur:ZéroBot|ZéroBot]], le ~~~~~""",
+Ceci est un message automatique vous avertissant que votre demande de restauration pour [[%(titre_page)s]] est en cours d'examen. Afin d'en voir les détails, [[%(lien_drp)s|cliquez ici]].""",
 		'autre': u"""Bonjour,\n
-Ceci est un message automatique vous avertissant que votre demande de restauration pour [[%(titre_page)s]] est en cours d'examen. Afin d'en voir les détails, [[%(lien_drp)s|cliquez ici]].\n
-Distribué par [[Utilisateur:ZéroBot|ZéroBot]], le ~~~~~""",
+Ceci est un message automatique vous avertissant que votre demande de restauration pour [[%(titre_page)s]] est en cours d'examen. Afin d'en voir les détails, [[%(lien_drp)s|cliquez ici]].""",
 		
 		# Le message 'oui_PaS' a cinq paramètres qui doivent être précisés :
 		# 'titre_page', 'lien_drp', 'date_debut_lien_valide', 'titre_PaS' et 'date_debut_PaS'
 		'oui_PaS': u"""Bonjour,\n
 Ceci est un message automatique vous avertissant que votre demande de restauration pour [[%(titre_page)s]] a été acceptée. Afin d'en voir les détails, [[%(lien_drp)s|cliquez ici]]. Ce lien restera actif durant une semaine à compter du %(date_debut_lien_valide)s.\n
 L'article est à nouveau en ligne, tout en étant soumis à une procédure communautaire de suppression, afin de savoir si votre article est, ou non, admissible.\n
-Vous pouvez accéder à cette page en [[%(titre_PaS)s|cliquant ici]]. Cette procédure dure une semaine à compter du %(date_debut_PaS)s ; nous vous laissons le soin d'y apporter toutes les preuves nécessaires permettant de conforter son admissibilité.\n
-Distribué par [[Utilisateur:ZéroBot|ZéroBot]], le ~~~~~""",
+Vous pouvez accéder à cette page en [[%(titre_PaS)s|cliquant ici]]. Cette procédure dure une semaine à compter du %(date_debut_PaS)s ; nous vous laissons le soin d'y apporter toutes les preuves nécessaires permettant de conforter son admissibilité.""",
 		
 		# Le message 'oui_PaS_mais_introuvable' a trois paramètres qui doivent être précisés :
 		# 'titre_page', 'lien_drp', 'date_debut_lien_valide'
 		'oui_PaS_mais_introuvable': u"""Bonjour,\n
 Ceci est un message automatique vous avertissant que votre demande de restauration pour [[%(titre_page)s]] a été acceptée.
 L'article est à nouveau en ligne, tout en étant soumis à une procédure communautaire de suppression, afin de savoir si votre article est, ou non, admissible. Pour plus de détails, [[%(lien_drp)s|cliquez ici]]. Ce lien restera actif durant une semaine à compter du %(date_debut_lien_valide)s.\n
-Cette procédure dure une semaine ; nous vous laissons le soin d'y apporter toutes les preuves nécessaires permettant de conforter son admissibilité.\n
-Distribué par [[Utilisateur:ZéroBot|ZéroBot]], le ~~~~~""",
+Cette procédure dure une semaine ; nous vous laissons le soin d'y apporter toutes les preuves nécessaires permettant de conforter son admissibilité.""",
 
 		# Le message 'sanssuite' a trois paramètres qui doivent être précisés :
 		# 'titre_page', 'lien_drp', 'date_debut_lien_valide'
 		'sanssuite': u"""Bonjour,\n
 Ceci est un message automatique vous avertissant que votre demande de restauration pour [[%(titre_page)s]] a été classée sans suite.
-Afin d'en voir les détails, [[%(lien_drp)s|cliquez ici]]. Ce lien restera actif durant une semaine à compter du %(date_debut_lien_valide)s.\n
-Distribué par [[Utilisateur:ZéroBot|ZéroBot]], le ~~~~~""",
+Afin d'en voir les détails, [[%(lien_drp)s|cliquez ici]]. Ce lien restera actif durant une semaine à compter du %(date_debut_lien_valide)s.""",
 		}
 
 		self.titre_message = u"Concernant votre demande de restauration de la page [[%(titre_page)s]]"
@@ -359,32 +353,27 @@ Distribué par [[Utilisateur:ZéroBot|ZéroBot]], le ~~~~~""",
 					page_discussion_demandeur = pywikibot.Page(pywikibot.Site(), u"Discussion utilisateur:"+ipv6)
 				#
 				
-				if page_discussion_demandeur.exists():
-					while page_discussion_demandeur.isRedirectPage():
-						page_discussion_demandeur = page_discussion_demandeur.getRedirectTarget()
-					
-					text = page_discussion_demandeur.get()
-					newtext = text
-					newtext += '\n\n'
-					newtext += u"== %s ==" % self.titre_message % {'titre_page': titre_pages_concernees}
-					newtext += '\n'
-					newtext += message
-		# pwb_error			pywikibot.showDiff(page_discussion_demandeur.get(), newtext)
+				while page_discussion_demandeur.isRedirectPage():
+					page_discussion_demandeur = page_discussion_demandeur.getRedirectTarget()
+				
+				titre = self.titre_message % {'titre_page': titre_pages_concernees}
+				if page_discussion_demandeur.isFlowPage():
+					board = pywikibot.flow.Board(self.site, page_discussion_demandeur.title())
+					board.new_topic(titre, message)
+
 				else:
-					newtext = u"== %s ==" % self.titre_message % {'titre_page': titre_pages_concernees}
-					newtext += '\n'
-					newtext += message
-					pywikibot.output(newtext)
+					if page_discussion_demandeur.text:
+						page_discussion_demandeur.text += '\n\n'
+					page_discussion_demandeur.text += u"== %s ==" % titre + '\n' + message
 				
+					comment = self.resume % {'titre_page': titre_pages_concernees} + u'\n\nDistribué par [[Utilisateur:ZéroBot|ZéroBot]], le ~~~~~'
+					pywikibot.output(comment)
 				
-				comment = self.resume % {'titre_page': titre_pages_concernees}
-				pywikibot.output(comment)
-				
-				try:
-					page_discussion_demandeur.put(newtext, comment=comment, minorEdit=False)
-				except:
-					pywikibot.output(u'erreur lors de la publication du message !')
-					continue
+					try:
+						page_discussion_demandeur.save(comment=comment, minorEdit=False)
+					except:
+						pywikibot.output(u'erreur lors de la publication du message !')
+						continue
 				
 				# Enregistrer la requête comme analysée par le bot
 				self.database.query('INSERT INTO drp VALUES ("%s", "%s", CURRENT_TIMESTAMP)' % (titre_section_SQL.replace('"', '\\"').encode('utf-8'), statut_actuel.encode('utf-8')))
