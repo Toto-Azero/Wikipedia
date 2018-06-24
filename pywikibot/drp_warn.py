@@ -140,7 +140,8 @@ Distribué par [[Utilisateur:ZéroBot|ZéroBot]], le ~~~~~""",
 	def traitement(self):
 		pageTraitees = pywikibot.Page(self.site, u"Wikipédia:Demande de restauration de page/Traitées")
 		pageRefusees = pywikibot.Page(self.site, u"Wikipédia:Demande de restauration de page/Refusées")
-		list = [(self.main_page, u'Requêtes à traiter'), (self.main_page, u'Requêtes en cours d\'examen'), (pageTraitees, None), (pageRefusees, None)]
+		pageSanssuite = pywikibot.Page(self.site, u"Wikipédia:Demande de restauration de page/Sans suite")
+		list = [(self.main_page, u'Requêtes à traiter'), (self.main_page, u"Requêtes en cours d'examen"), (pageTraitees, None), (pageRefusees, None), (pageSanssuite, None)]
 		
 		for couple in list:
 			dict = self.analyse_une_section(page = couple[0], match_debut = couple[1])
