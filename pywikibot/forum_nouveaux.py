@@ -336,7 +336,7 @@ def warn_Frakir():
 	
 def main():
 	site = pywikibot.Site()
-	list_pages_titles = (u"Wikipédia:Forum des nouveaux", u"Wikipédia:Forum des nouveaux/relecture")
+	list_pages_titles = (u"Wikipédia:Forum des nouveaux/relecture")
 	list_pages = (pywikibot.Page(site, page_title) for page_title in list_pages_titles)
 	for page in list_pages:
 		bot = AnalyserBot(main_page=page)
