@@ -5,6 +5,9 @@
 Avertissement des demandeurs de la réponse des admins sur leur DRP.
 
 Dernières modifications :
+* 1910 : prise en compte du paramètre "sanssuite"
+* 1905 : make regex non-greedy
+* 1901 : il manquait un "not"
 * 1900 : amélioration pour le gestion du cas d'une PàS technique
          (notamment pour les espaces de nom différents du main)
 * 1890 : meilleure gestion des IPv6
@@ -23,14 +26,15 @@ Dernières modifications :
 """
 
 #
-# (C) Toto Azéro, 2011-2016
+# (C) Toto Azéro, 2011-2017
+# (C) Framawiki, 2018
 #
 # Distribué sous licence GNU GPLv3
 # Distributed under the terms of the GNU GPLv3 license
 # http://www.gnu.org/licenses/gpl.html
 #
-__version__ = '1900'
-__date__ = '2016-01-04 22:52:30 (CET)'
+__version__ = '1910'
+__date__ = '2018-06-22 21:58:00 (CET)'
 #
 
 import pywikibot
@@ -45,7 +49,7 @@ class WarnBot:
 		self.main_page = pywikibot.Page(self.site, u"Wikipédia:Demande de restauration de page")
 		self.database = _mysql.connect(host='tools-db', db='s51245__totoazero', read_default_file="/data/project/totoazero/replica.my.cnf")
 		
-		self.status_knonw = ['non', 'oui', 'attente', 'autreavis', 'autre']
+		self.status_knonw = ['non', 'oui', 'attente', 'autreavis', 'autre', 'sanssuite']
 		
 		self.messages = {
 		# Les messages 'non' et 'oui' ont trois paramètres qui doivent être précisés :
@@ -87,9 +91,16 @@ Distribué par [[Utilisateur:ZéroBot|ZéroBot]], le ~~~~~""",
 Ceci est un message automatique vous avertissant que votre demande de restauration pour [[%(titre_page)s]] a été acceptée.
 L'article est à nouveau en ligne, tout en étant soumis à une procédure communautaire de suppression, afin de savoir si votre article est, ou non, admissible. Pour plus de détails, [[%(lien_drp)s|cliquez ici]]. Ce lien restera actif durant une semaine à compter du %(date_debut_lien_valide)s.\n
 Cette procédure dure une semaine ; nous vous laissons le soin d'y apporter toutes les preuves nécessaires permettant de conforter son admissibilité.\n
-Distribué par [[Utilisateur:ZéroBot|ZéroBot]], le ~~~~~"""
+Distribué par [[Utilisateur:ZéroBot|ZéroBot]], le ~~~~~""",
+
+		# Le message 'sanssuite' a trois paramètres qui doivent être précisés :
+		# 'titre_page', 'lien_drp', 'date_debut_lien_valide'
+		'sanssuite': u"""Bonjour,\n
+Ceci est un message automatique vous avertissant que votre demande de restauration pour [[%(titre_page)s]] a été classée sans suite.
+Afin d'en voir les détails, [[%(lien_drp)s|cliquez ici]]. Ce lien restera actif durant une semaine à compter du %(date_debut_lien_valide)s.\n
+Distribué par [[Utilisateur:ZéroBot|ZéroBot]], le ~~~~~""",
 		}
-		
+
 		self.titre_message = u"Concernant votre demande de restauration de la page [[%(titre_page)s]]"
 		self.resume = u"/* Concernant votre demande de restauration de la page %(titre_page)s */ nouvelle section"
 		self.match_titre_requete = re.compile(u"== *([^=].*?) *==")
@@ -247,7 +258,7 @@ Distribué par [[Utilisateur:ZéroBot|ZéroBot]], le ~~~~~"""
 				# Si on arrive ici, c'est que le demandeur n'a pas été averti du 
 				# statut actuel
 				m1 = re.search(u"[dD]emandée? par .*\[ *\[ *([uU]tilisateur:|[uU]ser:|[sS]p[eé]cial:[cC]ontributions/)(?P<nom_demandeur>[^|\]]+)(\|| *\] *\])", section)
-				m2 = re.search(u"[dD]emandée? par {{u'?\|(?P<nom_demandeur>[^|]+)}}", section)
+				m2 = re.search(u"[dD]emandée? par {{u'?\|(?P<nom_demandeur>[^|]+?)}}", section)
 				m3 = re.search(u"[dD]emandée? par (?P<nom_demandeur>[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)", section)
 				
 				if m1:
@@ -291,7 +302,7 @@ Distribué par [[Utilisateur:ZéroBot|ZéroBot]], le ~~~~~"""
 					if PaS:
 						statut_actuel = 'oui_PaS'
 						pywikibot.output('oui_PaS')
-						if not page_PaS or page_PaS.exists():
+						if not page_PaS or not page_PaS.exists():
 							try:
 								page_PaS = pywikibot.Page(self.site, titre_page_concernee + "/Suppression").toggleTalkPage() #pywikibot.Page(self.site, u"Discussion:%s/Suppression" % titre_page_concernee)
 								page_PaS.get()
@@ -322,7 +333,7 @@ Distribué par [[Utilisateur:ZéroBot|ZéroBot]], le ~~~~~"""
 				
 				#pywikibot.output(u'lien_drp = %s' % lien_drp)
 				
-				if statut_actuel == 'non' or statut_actuel == 'oui' or statut_actuel == 'oui_PaS_mais_introuvable':
+				if statut_actuel in ['non', 'oui', 'oui_PaS_mais_introuvable', 'sanssuite']:
 					message = message % {'titre_page':titre_page_concernee, 'lien_drp':lien_drp, 'date_debut_lien_valide':date}
 				elif statut_actuel == 'oui_PaS':
 					if not type(date_debut_PaS) == unicode:
