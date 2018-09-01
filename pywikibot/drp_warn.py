@@ -364,9 +364,9 @@ Afin d'en voir les détails, [[%(lien_drp)s|cliquez ici]]. Ce lien restera actif
 				else:
 					if page_discussion_demandeur.text:
 						page_discussion_demandeur.text += '\n\n'
-					page_discussion_demandeur.text += u"== %s ==" % titre + '\n' + message
+					page_discussion_demandeur.text += u"== %s ==" % titre + '\n' + message + u'\n\nDistribué par [[Utilisateur:ZéroBot|ZéroBot]], le ~~~~~'
 				
-					comment = self.resume % {'titre_page': titre_pages_concernees} + u'\n\nDistribué par [[Utilisateur:ZéroBot|ZéroBot]], le ~~~~~'
+					comment = self.resume % {'titre_page': titre_pages_concernees}
 					pywikibot.output(comment)
 				
 					try:
