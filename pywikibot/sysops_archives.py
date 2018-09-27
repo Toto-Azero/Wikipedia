@@ -157,7 +157,7 @@ class TreatementBot:
 			self.refused_page = pywikibot.Page(self.site, u"Wikipédia:Demande de protection de page/Refusées")
 			
 			self.text_below_waiting_requests = u"\n{{Wikipédia:Requête aux administrateurs/Note:Requêtes en cours}}"			
-			self.text_below_untreated_requests = u"\n{{Wikipédia:Requête aux administrateurs/Note:Requêtes à traiter}}"
+			self.text_below_untreated_requests = u"\n{{Wikipédia:Demande de protection de page/Note:Requêtes à traiter}}"
 			self.template_prefix = "DPP"
 			self.template_title = u"%s début" % self.template_prefix
 			self.template_end_title = u"%s fin" % self.template_prefix
