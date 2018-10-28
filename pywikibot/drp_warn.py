@@ -5,6 +5,7 @@
 Avertissement des demandeurs de la réponse des admins sur leur DRP.
 
 Dernières modifications :
+* 1920 : bugfix #13 vérifie que le message n'a pas déjà été posté
 * 1915 : prise en compte des pages de discussion utilisant Flow
 * 1910 : prise en compte du paramètre "sanssuite"
 * 1905 : make regex non-greedy
@@ -34,7 +35,7 @@ Dernières modifications :
 # Distributed under the terms of the GNU GPLv3 license
 # http://www.gnu.org/licenses/gpl.html
 #
-__version__ = '1910'
+__version__ = '1920'
 __date__ = '2018-06-22 21:58:00 (CET)'
 #
 
@@ -364,11 +365,14 @@ Afin d'en voir les détails, [[%(lien_drp)s|cliquez ici]]. Ce lien restera actif
 				else:
 					if page_discussion_demandeur.text:
 						page_discussion_demandeur.text += '\n\n'
+						if message in page_discussion_demandeur.text:
+						    pywikibot.output('BUG #13: le message a déjà été posté sur %s !' % page_discussion_demandeur.title(asLink=True))
+						    continue
+					
 					page_discussion_demandeur.text += u"== %s ==" % titre + '\n' + message + u'\n\nDistribué par [[Utilisateur:ZéroBot|ZéroBot]], le ~~~~~'
 				
 					comment = self.resume % {'titre_page': titre_pages_concernees}
 					pywikibot.output(comment)
-				
 					try:
 						page_discussion_demandeur.save(comment=comment, minorEdit=False)
 					except:
