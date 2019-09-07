@@ -5,6 +5,7 @@
 Met à jour les modèles {{User:ZéroBot/Articles chauds}}.
 """
 #
+# (C) Framawiki, 2018-2019
 # (C) Toto Azéro, 2016
 # (C) Ryan Kaldari, 2013-2015 
 #
@@ -12,7 +13,7 @@ Met à jour les modèles {{User:ZéroBot/Articles chauds}}.
 # Distributed under the terms of the GNU AGPLv3 license
 # http://www.gnu.org/licenses/gpl.html
 #
-__version__ = '$Id: hotarticles.py 0100 2016-09-29 00:07:23 (CEST) Toto Azéro $'
+__version__ = '$Id: hotarticles.py 0100 2019-07-20 20:17:00 (UTC) Framawiki $'
 #
 
 from maj_articles_recents import check_and_return_parameter
