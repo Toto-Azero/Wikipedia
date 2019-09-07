@@ -8,13 +8,14 @@ Voir cette discussion :
 """
 
 #
+# (C) Framawiki, 2019
 # (C) Toto Azéro, 2012-2013
 #
 # Distribué sous licence GNU GPLv3
 # Distributed under the terms of the GNU GPLv3 license
 # http://www.gnu.org/licenses/gpl.html
 #
-__version__ = '$Id: stats_bistro.py 119 2013-05-23 20:21:30 (CEST) Toto Azéro $'
+__version__ = '$Id: stats_bistro.py 120 2019-09-07 Framawiki $'
 #
 
 import almalog2
@@ -41,10 +42,12 @@ def main():
 	text_part = text_part.replace(u"{{Nombre d'articles de qualité}}", u"{{subst:formatnum:{{subst:#expr:{{subst:PAGESINCATEGORY:Article de qualité|R}}-3}}}}")
 	text_part = text_part.replace(u"{{Nombre de bons articles}}", u"{{subst:formatnum:{{subst:#expr:{{subst:PAGESINCATEGORY:Bon article|R}}-3}}}}")
 	text_part = text_part.replace(u"{{Nombre d'articles géolocalisés sur Terre}}", u"{{subst:formatnum:{{subst:#expr:{{subst:PAGESINCATEGORY:Article géolocalisé sur Terre|R}}}}}}")
+	text_part = text_part.replace(u"{{Wikipédia:Le Bistro/Labels}}", u"{{subst:Wikipédia:Le Bistro/Labels}}")
+	text_part = text_part.replace(u"{{Wikipédia:Le Bistro/Test}}", u"{{subst:Wikipédia:Le Bistro/Test}}")
 	
 	text = text.replace(text_part_old, text_part)
 	
-	page.put(text, comment = u"Statistiques fixes dans la section [[#Aujourd.27hui.2C_dans_Wikip.C3.A9dia|#Aujourd'hui, dans Wikipédia]]")
+	page.put(text, comment = u"Bot: Substitution des modèles afin de rendre fixes les statistiques fixes dans la section [[#Aujourd.27hui.2C_dans_Wikip.C3.A9dia|#Aujourd'hui, dans Wikipédia]]")
 	
 	
 if __name__ == '__main__':
