@@ -5,6 +5,10 @@
 Notification aux administrateurs des demandes de déblocage (sur [[WP:RA]])
 
 Dernières modifications :
+* 1670 : coupé le texte si possible lorsqu'il est trop long,
+         sinon textlib.extract_templates_and_params n'arrive pas à
+         extraire tous les modèles et peut sauter {{Déblocage}},
+         ce qui conduit à une erreur  
 * 1651 : %i non complété
 * 1650 : En cas d'erreur lors de la mise à jour de WP:RA (ex: conflit d'édit),
          supprimer les noms d'utilisateurs de la base SQL en l'abscen
@@ -19,14 +23,14 @@ Dernières modifications :
 
 #
 # (C) Nakor
-# (C) Toto Azéro, 2011-2016
+# (C) Toto Azéro, 2011-2017
 #
 # Distribué sous licence GNU GPLv3
 # Distributed under the terms of the GNU GPLv3 license
 # http://www.gnu.org/licenses/gpl.html
 #
 
-__version__ = '$Id: unblock.py 1651 2016-05-28 12:19:24 (CEST) Toto Azéro $'
+__version__ = '$Id: unblock.py 1670 2017-01-29 01:22:07 (CET) Toto Azéro $'
 
 import almalog2
 import pywikibot
@@ -106,6 +110,7 @@ def find_add(page):
 	unblock_found = True
 	history = page.getVersionHistory()
 	
+	pywikibot.output(u"Analysing page %s" % page.title())
 	if len(history) == 1:
 		[(id, timestamp, user, comment)] = history
 		return (pywikibot.User(site, user), id)
@@ -117,12 +122,18 @@ def find_add(page):
 		pywikibot.output("Analyzing id %i: timestamp is %s and user is %s" % (id, timestamp, user))
 		
 		text = page.getOldVersion(id)
+		# text might be too long, if so textlib.extract_templates_and_params won't
+		# proceed and will skip some templates
+		if u"{{déblocage" in text.lower():
+			text = text[max(0,text.lower().index(u"{{déblocage")-12):]
+		elif u"{{unblock" in text.lower():
+			text = text[max(0,text.lower().index(u"{{unblock")-12):]
+
 		templates_params_list = textlib.extract_templates_and_params(text)
 		unblock_found = False
 		for (template_name, dict_param) in templates_params_list:
-			#pywikibot.output((template_name, dict_param))
+			pywikibot.output((template_name, dict_param))
 			try:
-				print 0
 				template_page = pywikibot.Page(pywikibot.Link(template_name, site, defaultNamespace=10), site)
 				print 1
 				pywikibot.output(template_page)

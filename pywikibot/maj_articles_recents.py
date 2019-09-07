@@ -81,7 +81,8 @@ def find_date(article, category):
 		
 	title = article.title(asLink=False, withNamespace=False, underscore = True)
 	
-	frwiki_p = _mysql.connect(host='frwiki.labsdb', db='frwiki_p', read_default_file="/data/project/totoazero/replica.my.cnf")
+	frwiki_p = _mysql.connect(host='frwiki.analytics.db.svc.eqiad.wmflabs', db='frwiki_p', read_default_file="/data/project/totoazero/replica.my.cnf")
+	#frwiki_p = _mysql.connect(host='frwiki.labsdb', db='frwiki_p', read_default_file="/data/project/totoazero/replica.my.cnf")
 	pywikibot.output('SELECT page_title, page_id FROM page where page_title = "%s" AND page_namespace=%i' % (title.replace('"', '\\"').encode('utf-8'), namespace_id))
 	results=frwiki_p.query('SELECT page_title, page_id FROM page where page_title = "%s" AND page_namespace=%i' % (title.replace('"', '\\"').encode('utf-8'), namespace_id))
 	results=frwiki_p.store_result()
@@ -365,7 +366,7 @@ def main():
 			pywikibot.output(list_new_str)
 
 			# Fonctionne uniquement avec les pages du ns 0 pour le moment
-			frwiki_p = _mysql.connect(host='frwiki.labsdb', db='frwiki_p', read_default_file="/data/project/totoazero/replica.my.cnf")
+			frwiki_p = _mysql.connect(host='frwiki.analytics.db.svc.eqiad.wmflabs', db='frwiki_p', read_default_file="/data/project/totoazero/replica.my.cnf")
 			pywikibot.output('SELECT page_title, page_id FROM page where page_title IN %s AND page_namespace=0' % list_new_str.encode('utf-8'))
 			results=frwiki_p.query('SELECT page_title, page_id FROM page where page_title IN %s AND page_namespace=0' % list_new_str.encode('utf-8'))
 			results=frwiki_p.store_result()
@@ -382,7 +383,7 @@ def main():
 			dico_timestamp = {}
 
 			pywikibot.output('stade 3')
-			frwiki_p = _mysql.connect(host='frwiki.labsdb', db='frwiki_p', read_default_file="/data/project/totoazero/replica.my.cnf")
+			frwiki_p = _mysql.connect(host='frwiki.analytics.db.svc.eqiad.wmflabs', db='frwiki_p', read_default_file="/data/project/totoazero/replica.my.cnf")
 			for key in dico_result:
 				id = dico_result[key]
 	
@@ -559,6 +560,7 @@ def main():
 			#####################
 		except Exception, myexception:
 			pywikibot.output("Erreur lors du traitement de la page %s" % main_page.title(asLink=True))
+			pywikibot.output("%s %s" % (type(myexception), myexception.args))
 			almalog2.error(u'maj_articles_recents', u'traitement de %s : %s %s'% (main_page.title(asLink=True), type(myexception), myexception.args))
 
 if __name__ == '__main__':

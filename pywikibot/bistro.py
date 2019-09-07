@@ -32,7 +32,7 @@ __version__ = '$Id: bistro.py 1000 2013-07-11 12:32:24 (CEST) Toto Azéro $'
 import almalog2
 import pywikibot
 from pywikibot import config, pagegenerators
-import locale 
+import locale
 from datetime import datetime, timedelta
 
 # Define the main function
