@@ -31,7 +31,7 @@ __version__ = '$Id: modeles_sans_dates.py 0210 2018-06-24 22:43:59 (CEST) Framaw
 
 from pywikibot import textlib
 import pywikibot
-import almalog2
+import _errorhandler
 import re, time, datetime
 import locale
 
@@ -319,7 +319,7 @@ if __name__ == "__main__":
 	except Exception, myexception:
 		#print u'%s %s'% (type(myexception), myexception.args)
 		if not debug:
-			almalog2.error(u'modeles_sans_dates.py', u'%s %s'% (type(myexception), myexception.args))
+			_errorhandler.handle(myexception)
 		raise
 	finally:
 		pywikibot.stopme()

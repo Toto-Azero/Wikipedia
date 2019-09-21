@@ -29,14 +29,14 @@ The following parameters are supported:
 #
 __version__ = '$Id: bistro.py 1000 2013-07-11 12:32:24 (CEST) Toto Azéro $'
 #
-import almalog2
+import _errorhandler
 import pywikibot
 from pywikibot import config, pagegenerators
 import locale
 from datetime import datetime, timedelta
 
 # Define the main function
-def main():  
+def main():
 	force = False
 	for arg in pywikibot.handleArgs():
 		if arg.startswith('-force'):
@@ -44,25 +44,25 @@ def main():
 		else:
 			pywikibot.output(u'Syntax: bistro.py [-force]')
 			exit()
-			
+
 	if config.verbose_output:
 		pywikibot.output("Running in VERBOSE mode")
 
 	if len(config.debug_log):
 		pywikibot.output("Running in DEBUG mode")
-			
-	
+
+
 	curlocale=locale.getlocale()
-	
+
 	# Configuration de locale
 	try:
 		locale.setlocale(locale.LC_ALL, 'fr_FR.utf8')
 	except:
 		locale.setlocale(locale.LC_ALL, 'fr_FR')
-	
+
 	datetimetarget=datetime.utcnow()+timedelta(15)
 	datetimefinal=datetime.utcnow()+timedelta(44)
-	
+
 	date=datetimetarget.strftime('%d %B %Y')
 	date=date.decode('utf-8')
 	if date[0]=='0':
@@ -71,12 +71,12 @@ def main():
 	  date=u'User:ZéroBot/Wikipédia:Le Bistro/'+date
 	else:
 	  date=u'Wikipédia:Le Bistro/'+date
-	
+
 	site = pywikibot.Site()
 	page=pywikibot.Page(site, date)
-	
+
 	datetimetarget=datetime.utcnow()
-	
+
 	if force or not page.exists():
 		pywikibot.output('%s does not exists, creating missing pages' % date)
 		titlelist=list()
@@ -92,13 +92,13 @@ def main():
 			page=pywikibot.Page(site, date)
 			titlelist.append(page)
 			datetimetarget=datetimetarget+timedelta(1)
-			
+
 		gen=iter(titlelist)
-		
+
 		catpreloadingGen=pagegenerators.PreloadingGenerator(gen, 60)
-		
+
 		newtext = u'{{subst:Wikipédia:Le Bistro/préchargement}}'
-				
+
 		for page in catpreloadingGen:
 			if not force and not page.exists():
 				## Création de la page non-existante
@@ -107,7 +107,7 @@ def main():
 			elif force:
 				## Écrasement de la page existante
 				pywikibot.output(u'Checking %s'% page.title())
-				
+
 				overwrite=False
 				if page.exists():
 				  history=page.getVersionHistory()
@@ -115,22 +115,22 @@ def main():
 					overwrite=True
 				else:
 				  overwrite=True
-				  
+
 				if overwrite:
 				  pywikibot.output('Correcting %s' % page.title())
 				  page.put(newtext, comment='Initialisation de la page', watchArticle = None, minorEdit = False)
-			
+
 	else:
 		pywikibot.output('%s exists, no action needed' % date)
-		
-	
+
+
 #	locale.setlocale(locale.LC_ALL, curlocale)
-  
+
 if __name__ == '__main__':
 	try:
 		main()
 	except Exception, myexception:
-		almalog2.error(u'bistro', u'%s %s'% (type(myexception), myexception.args))
+		_errorhandler.handle(myexception)
 		raise
 	finally:
 		pywikibot.stopme()

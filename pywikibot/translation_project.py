@@ -9,7 +9,7 @@
 # Distributed under the terms of the MIT license.
 #
 
-import almalog2
+import _errorhandler
 import pywikibot
 from pywikibot import catlib, config, pagegenerators
 import codecs, re
@@ -206,7 +206,7 @@ if __name__ == '__main__':
     try:
         main()
     except Exception, myexception:
-        almalog2.error(u'translation_project', u'%s %s'% (type(myexception), myexception.args))
+        _errorhandler.handle(myexception)
         raise
     finally:
         pywikibot.stopme()

@@ -7,7 +7,7 @@ Met à jour les modèles {{User:ZéroBot/Articles chauds}}.
 #
 # (C) Framawiki, 2018-2019
 # (C) Toto Azéro, 2016
-# (C) Ryan Kaldari, 2013-2015 
+# (C) Ryan Kaldari, 2013-2015
 #
 # Distribué sous licence GNU AGPLv3
 # Distributed under the terms of the GNU AGPLv3 license
@@ -18,7 +18,7 @@ __version__ = '$Id: hotarticles.py 0100 2019-07-20 20:17:00 (UTC) Framawiki $'
 
 from maj_articles_recents import check_and_return_parameter
 from pywikibot import pagegenerators, config, textlib
-import almalog2
+import _errorhandler
 import pywikibot
 import pickle
 import md5
@@ -38,17 +38,17 @@ def decode_sql(string, remove_underscores=True):
         if remove_underscores:
                 string = string.replace('_', ' ')
         return string.decode('utf-8')
-        
+
 class BotArticlesChauds():
         def __init__(self, main_page, modele, dry=False):
                 self.site = pywikibot.Site()
                 self.main_page = main_page
                 self.modele = modele
                 self.dry = dry
-                
+
                 self.matchDebut = u"<!-- Ce tableau est créé automatiquement par un robot. Articles Chauds DEBUT -->"
                 self.matchFin = u"\n<!-- Ce tableau est créé automatiquement par un robot. Articles Chauds FIN -->"
-                
+
                 self.cat = None
                 self.nbMax = None
                 self.minimum = None
@@ -64,9 +64,9 @@ class BotArticlesChauds():
                 self.transclusion = None
                 self.diff = None
                 self.lien_historique = None
-                
+
                 self.comment = u'Bot: Mise à jour des articles chauds'
-                
+
         def get_params(self):
                 text = self.main_page.get()
 
@@ -76,7 +76,7 @@ class BotArticlesChauds():
                         if tuple[0] == modele.title(asLink=False):
                                 template_in_use = tuple[1]
                                 break
-                
+
                 if not template_in_use:
                         pywikibot.output(u"Aucun modèle {{%s}} détecté sur la page %s" % (modele.title(asLink=False), main_page.title()))
                         return False
@@ -88,7 +88,7 @@ class BotArticlesChauds():
                 if not self.cat.exists():
                         pywikibot.output(u"Erreur : la catégorie n'existe pas")
                         return False
-                
+
                 self.nbMax = check_and_return_parameter(template_in_use, 'nbMax', -1)
                 try:
                         self.nbMax = int(self.nbMax)
@@ -102,7 +102,7 @@ class BotArticlesChauds():
                 except:
                         pywikibot.output(u'Erreur : minimum incorrect')
                         return False
-        
+
                 self.actions = check_and_return_parameter(template_in_use, 'actions', '0,1,3')
                 try:
                         [int(k) for k in self.actions.split(',')]
@@ -161,7 +161,7 @@ class BotArticlesChauds():
                 except:
                         pywikibot.output(u'Erreur : bots_inclus incorrect')
                         return False
-                
+
                 self.bots_inclus_str = ''
                 if self.bots_inclus == 0: # ne pas prendre les bots en compte
                         # rc_bot indique une modification faite par un bot
@@ -197,12 +197,12 @@ class BotArticlesChauds():
                 except:
                         pywikibot.output(u'Erreur : namespaces incorrect')
                         return False
-                
+
                 return True
-        
+
         def build_table(self):
                 frwiki_p = MySQLdb.connect(host='frwiki.labsdb', db='frwiki_p', read_default_file="/data/project/totoazero/replica.my.cnf")
-        
+
                 frwiki_p.query("SELECT s.rev_id, s.rev_timestamp FROM revision AS s \
                 WHERE s.rev_timestamp > DATE_FORMAT(DATE_SUB(NOW(), INTERVAL %i DAY),'%%Y%%m%%d%%H%%i%%s') \
                 ORDER BY s.rev_timestamp ASC LIMIT 1;" % self.delai)
@@ -211,7 +211,7 @@ class BotArticlesChauds():
 
                 rev_timestamp = int(result['rev_timestamp'])
                 rev_id = int(result['rev_id'])
-                
+
                 query = "SELECT page_id, page_title, COUNT(*) AS count_changes, SUM(rc_minor) \
 AS count_minor, COUNT(DISTINCT rc_actor) as nb_users, SUM(rc_new_len - rc_old_len) as diff \
 FROM recentchanges \
@@ -228,16 +228,16 @@ ORDER BY count_changes DESC;" % {
         'minimum_contributeurs':self.minimum_contributeurs,
         'bots_inclus_str':self.bots_inclus_str,
         'namespaces': self.namespaces}
-                
+
                 if self.nbMax > 0:
                         query = query[:-1] + " LIMIT %i;" % self.nbMax
-                
+
                 print query
                 frwiki_p.query(query)
                 results = frwiki_p.store_result()
-                
+
                 text = u""
-                
+
                 # Il peut ne pas être nécessaire d'effectuer les transclusions
                 # si le nombre de résultats n'excède par le paramètre transclusion
                 # renseigné.
@@ -245,23 +245,23 @@ ORDER BY count_changes DESC;" % {
                         do_transclude = True
                 else:
                         do_transclude = False
-                
+
                 if do_transclude:
                         text += "<onlyinclude>"
-                        
+
                 text += u"{|"
                 for i in range(results.num_rows()):
                         if do_transclude and i == self.transclusion:
                                 # on vient d'atteindre le nombre de transclusions
                                 text += "</onlyinclude>"
-                        
+
                         result = results.fetch_row(how=1)[0]
                         count = int(result['count_changes'])
                         count_minor = int(result['count_minor'])
                         page = result['page_title']
                         nb_users = result['nb_users']
                         diff_value = result['diff']
-                        
+
                         color = ''
                         if count > self.rouge:
                                 color = "#c60d27"
@@ -269,7 +269,7 @@ ORDER BY count_changes DESC;" % {
                                 color = "#f75a0d"
                         else:
                                 color = "#ff9900"
-                        
+
                         diff_str = ''
                         if self.diff:
                                 signe = ''
@@ -282,18 +282,18 @@ ORDER BY count_changes DESC;" % {
                                         # signe - déjà présent
                                 else:
                                         classe = "mw-plusminus-null"
-                                        
+
                                 if abs(diff_value) >= 500:
                                         gras = "'''"
-                                
+
                                 diff_str = ' <span class="(classe)s">%(gras)s(%(signe)s{{formatnum:%(diff_value)i}})%(gras)s</span>' % {'classe':classe, \
                                         'signe':signe, 'gras':gras, 'diff_value':diff_value}
-                        
+
                         actions_str = u"""'''%i'''&nbsp;<span style="font-size:60%%">actions</span>""" % count
                         if self.lien_historique:
                                 actions_str = u"[//fr.wikipedia.org/w/index.php?title=" + decode_sql(page, remove_underscores=False) + \
                                         u"&action=history" + actions_str + u"]"
-                        
+
                         if self.mineures and self.contributeurs:
                                 text += u"""\n|-
 | style="text-align:center; font-size:130%%; color:white; background:%(color)s; padding: 0 0.2em" | %(actions_str)s
@@ -325,22 +325,22 @@ ORDER BY count_changes DESC;" % {
 | style="text-align:center; font-size:130%%; color:white; background:%(color)s; padding: 0 0.2em" | %(actions_str)s
 | style="padding: 0.4em;" | [[%(page)s]]%(diff)s""" % {'color':color, 'actions_str':actions_str, \
                                                'page':decode_sql(page), 'diff':diff_str}
-                
+
                 text += "\n"
-                
+
                 if do_transclude:
                         text += "<onlyinclude>\n"
-                        
+
                 text += "|}"
-                
+
                 if do_transclude:
                         text += "</onlyinclude>"
-                        
+
                 return text
-                        
+
         def edit_page(self):
                 text = self.main_page.get()
-                
+
                 # Définition d'une nouvelle variable pour éviter toute suppression
                 # involontaire dans text.
                 new_text = text[:text.index(self.matchDebut)]
@@ -349,21 +349,21 @@ ORDER BY count_changes DESC;" % {
                 new_text += self.build_table()
                 new_text += self.matchFin
                 new_text += text[text.index(self.matchFin)+len(self.matchFin):]
-                
+
                 if not self.dry:
                         page.put(new_text, self.comment)
                 else:
                         pywikibot.output(new_text)
-                
+
         def run(self):
-                pywikibot.output(u"\n=== Doing page %s ===" % self.main_page.title())                           
+                pywikibot.output(u"\n=== Doing page %s ===" % self.main_page.title())
                 if not self.get_params():
                         pywikibot.output(u"Erreur lors de la récupération des paramètres")
                         return False
 
                 self.edit_page()
                 return True
-                                
+
 if __name__ == '__main__':
         try:
                 # parser des arguments
@@ -374,23 +374,23 @@ if __name__ == '__main__':
                         if arg == "-dry":
                                 dry = True
                                 pywikibot.output(u'(dry is ON)')
-                        
+
                         elif arg[0:6] == "-test:":
                                 test = True
                                 titre_page_test = arg[6:]
                                 gen.append(titre_page_test)
-                                
+
                                 # pour afficher la mention uniquement
                                 # la première fois que l'argument est rencontré
                                 if not test:
                                         pywikibot.output(u'(test is ON)')
-                        
+
                 site = pywikibot.Site()
                 titre_modele = u"Utilisateur:ZéroBot/Articles chauds"
                 modele = pywikibot.Page(site, titre_modele)#, ns = 10)
                 cat = pywikibot.Category(site, u"Catégorie:Page mise à jour par un bot/Articles chauds")
-                
-                
+
+
                 # le générateur a été créé via la lecture des arguments
                 # dans le cas où le mode test est actif.
                 if not test:
@@ -409,8 +409,7 @@ if __name__ == '__main__':
                                 pywikibot.output("An error occurred while doing page %s" % page.title())
         except Exception, myexception:
                 if not (test or dry):
-                        pywikibot.output(traceback.format_exc())
-                        almalog2.error(u'maj_articles_manquants', traceback.format_exc())
+                        _errorhandler.handle(myexception)
                 raise
         finally:
                 pywikibot.stopme()

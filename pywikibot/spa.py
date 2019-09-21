@@ -20,7 +20,7 @@ __date__ = '2013-08-24 20:57:33 (CEST)'
 #import wikipedia, catlib, date, config, pagegenerators, userlib, almalog
 #import re, time, os, time, codecs, sys, calendar, locale, urllib
 import codecs, time, re, calendar
-import pywikibot, almalog2
+import pywikibot, _errorhandler
 from pywikibot import config, pagegenerators
 
 
@@ -29,13 +29,13 @@ def tuple_sort(item):
 	sortkey=time.strptime(unicode(item[1]), '%Y-%m-%dT%H:%M:%SZ')
 	ordinal=calendar.timegm(sortkey)
 	return ordinal
-	
+
 # Define the main function
 def main():
 	# Process command line arguments
 	fullmode = False
 	debug = 0
-	
+
 	for arg in pywikibot.handleArgs():
 		if arg.startswith('-full'):
 			fullmode = True
@@ -47,11 +47,11 @@ def main():
 
 	# Get interesting pages and category
 	site = pywikibot.Site()
-	
+
 	catname = u'Catégorie:Wikipédien recherchant un parrain'
 	pagename = u'Wikipédia:Parrainage_des_nouveaux/Nouveaux_en_attente'
 	#pagename = u'Utilisateur:ZéroBot/Test'
-	
+
 	if debug:
 		mainpage=pywikibot.Page(site, u'Utilisateur:ZéroBot/Tests')
 	else:
@@ -89,33 +89,33 @@ def main():
 
 	# Step one: remove invalid entries
 	preloadingGen=pagegenerators.PreloadingGenerator(artlist, 60)
-	
+
 	#step two: add new entries
 	user_list = list()
 	time_list = list()
 	tuples = list()
 	redirectuser = list()
-	
+
 	existingusers=''
 	for page in artlist:
 		userpage=page.title(withNamespace=False)
 		username=re.split(u'/', userpage,1)[0]
 		#wikipedia.output(u'Processing %s' % username)
-		   
+
 		if fullmode:
 			commandLogFile.write("   processing %s\n" % username)
 
 		if not fullmode:
 			existing=re.search(username, oldpagetext)
- 
-		if fullmode or not existing:		
+
+		if fullmode or not existing:
 
 			#history = page.getVersionHistory()
 			history = page.fullVersionHistory()
 			#print history
 			history.sort(key=tuple_sort)
 			#history.reverse()
-			
+
 			spadate=history[0][1]
 			#print page.title(withNamespace=False)
 			#wikipedia.output(u'#### Original date: %s / %d' % (spadate, len(history)))
@@ -123,14 +123,14 @@ def main():
 				revisionid=data[0]
 				#print data
 				#wikipedia.output(revisionid)
-				
+
 				try:
 					usertext=page.getOldVersion(revisionid)
 				except pywikibot.IsRedirectPage:
 					redirectuser.append(username)
 				except KeyError:
 					usertext=''
-					
+
 				# We check for the spa model. If not present we do not save the date and keep the previous one when it was added
 				spaok=re.search('[P|p]arrainez[-| ]moi', usertext)
 				if spaok:
@@ -150,7 +150,7 @@ def main():
 			contribdate=u''
 			for contrib in contribs:
 				contribdate=contrib[2]
-			   
+
 			tuple=list()
 			tuple.append(username)
 			tuple.append(spadate)
@@ -164,7 +164,7 @@ def main():
 
 	tuples.sort(key=tuple_sort)
 	#tuples.reverse()
-	
+
 	if fullmode:
 		newpagetext = u"<noinclude>" + u"""
 {{Mise à jour bot|Toto Azéro|période=quotidiennement}}
@@ -177,14 +177,14 @@ La liste suivante regroupe les wikipédiens en quête d'un parrain. Elle est ré
 	else:
 		mainsplit=oldpagetext.split(u'\n|{{u|', 1)
 		newpagetext=mainsplit[0]+u'\n'
-		
+
 	if not fullmode:
 		submainsplit=mainsplit[1].split('|{{u|')
 		for subsplit in submainsplit:
 			#wikipedia.output(u'subsplit:'+subsplit)
 			usersplit=subsplit.split('}}')
 			stillthere=re.search(usersplit[0], existingusers)
-			if stillthere: 
+			if stillthere:
 				newpagetext+=u'|{{u|'+subsplit
 		splits=newpagetext.split(u'\n\n[[Catégorie:')
 		newpagetext=splits[0]
@@ -204,43 +204,41 @@ La liste suivante regroupe les wikipédiens en quête d'un parrain. Elle est ré
 		  raise
 	#locale.setlocale(locale.LC_ALL, curlocale)
 	newpagetext+=u'\n|}\n\n[[Catégorie:Wikipédia:Parrainage]]'
-	  
+
 
 	if debug:
 		newpage=pywikibot.Page(site, u'Utilisateur:ZéroBot/Test')
 		botflag=True
 	else:
-		newpage=pywikibot.Page(site, u'Wikipédia:Parrainage_des_nouveaux/Nouveaux_en_attente')		  
+		newpage=pywikibot.Page(site, u'Wikipédia:Parrainage_des_nouveaux/Nouveaux_en_attente')
 		botflag=False
-	#newpage=wikipedia.Page(site, u'Utilisateur:ZéroBot/Test')		  
+	#newpage=wikipedia.Page(site, u'Utilisateur:ZéroBot/Test')
 	newpage.put(newpagetext, u'Mise à jour automatique de la liste', minorEdit = botflag, botflag = botflag);
-	
+
 	if fullmode and not debug:
 
 		if len(redirectuser)>0:
-	  
+
 			logpage=pywikibot.Page(site, u'Utilisateur:ZéroBot/Log/Avertissements')
-		
+
 			pagetext=logpage.get()
 			pagetext+=u'\n==Utilisateur avec un redirect =='
 
 			for user in redirectuser:
 				pagetext+='\n* {{u|' + user + '}}'
-		  
+
 			logpage.put(pagetext, u'Utilisateur en attente de parrainage et parrainés', minorEdit = False);
 
 		isoDate = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
 		commandLogFile.write("%s Finished.\n" % isoDate)
 		#commandLogFile.write(s + os.linesep)
 		commandLogFile.close()
-	
+
 if __name__ == '__main__':
 	try:
 		main()
 	except Exception, myexception:
-		#almalog2.error(u'spa', u'%s %s'% (type(myexception), myexception.args))
-		print u'%s %s'% (type(myexception), myexception.args)
+		_errorhandler.handle(myexception)
 		raise
 	finally:
 		pywikibot.stopme()
-

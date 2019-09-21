@@ -17,7 +17,7 @@ __version__ = '$Id: mort_recente.py 0001 2015-10-30 13:55:17 (CET) Toto Azéro $
 
 import pywikibot
 from pywikibot import textlib
-import almalog2
+import _errorhandler
 import re, time, datetime
 import locale
 import _mysql
@@ -180,7 +180,7 @@ if __name__ == "__main__":
 	try:
 		main()
 	except Exception, myexception:
-		almalog2.error(u'mort_recente.py', u'%s %s'% (type(myexception), myexception.args))
+		_errorhandler.handle(myexception)
 		raise
 	finally:
 		pywikibot.stopme()

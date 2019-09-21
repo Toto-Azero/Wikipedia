@@ -19,7 +19,7 @@ TODO : fix workaround
 __version__ = '1009'
 __date__ = '2015-10-03 16:23:42 (CEST)'
 #
-import almalog2
+import _errorhandler
 import pywikibot
 from pywikibot import config, pagegenerators, textlib
 from scripts import template
@@ -32,7 +32,7 @@ def pageIsListed(page, listedlist, templateList):
     title=re.sub(u'_', u' ', page.title())
     if title in listedlist:
         found = True
-        
+
     # Not found, trying lowercase and uppercase for first letter of the title
     if not found:
         lowtitle=title[0].lower()+title[1:]
@@ -46,7 +46,7 @@ def pageIsListed(page, listedlist, templateList):
                 pywikibot.output(u'Not found, trying up title %s' % uptitle)
             if uptitle in listedlist:
                 found=True
-            
+
     # Not found, trying title in the AfD model on the article page
     if not found:
         pagetemplates=page.templatesWithParams()
@@ -86,12 +86,12 @@ def pageIsListed(page, listedlist, templateList):
 
 
 def main():
-
+    _errorhandler.message('prout', addtags={'everywhere': 'true'})
     botName=config.usernames['wikipedia']['fr']
-    
+
     templates=False
     afdlist=False
-    
+
     for arg in pywikibot.handleArgs():
         # -templates check afd articles whose admissibility is listed to be checked and removes the template
         if arg.startswith('-templates'):
@@ -115,13 +115,13 @@ def main():
 
     # Get category
     site = pywikibot.getSite()
-    
+
     # Open logfile
     commandLogFilename = config.datafilepath('logs', 'afd.log')
     try:
         commandLogFile = codecs.open(commandLogFilename, 'a', 'utf-8')
     except IOError:
-        commandLogFile = codecs.open(commandLogFilename, 'w', 'utf-8')    
+        commandLogFile = codecs.open(commandLogFilename, 'w', 'utf-8')
 
     if templates:
         templateList=list()
@@ -133,9 +133,9 @@ def main():
 
         templateKeys = {}
         for templateName in templateList:
-            templateKeys[templateName] = None    
+            templateKeys[templateName] = None
 
-    
+
     catname=u'Catégorie:Page proposée à la suppression'
     categ=pywikibot.Category(site, catname)
     subcats=list(categ.subcategories())
@@ -145,38 +145,38 @@ def main():
         if page.namespace()==0:
             artlist.append(page)
     artlist+=subcats
-    
+
     if templates:
         gen = iter(artlist)
 
         pagesToProcess=pagegenerators.PreloadingGenerator(gen, 60)
-        
+
         summary=u'Admissibilité en cours de discussion : débat de suppression en cours'
-       
+
         bot = template.TemplateRobot(generator=pagesToProcess, templates=templateKeys, subst=False, remove=True, editSummary=summary, acceptAll=True, addedCat=None)
         bot.run()
-        
+
     if afdlist:
         afdpage=pywikibot.Page(site, u'Wikipédia:Pages à supprimer')
         if len(config.debug_log):
             projectpage=pywikibot.Page(site, u'User:ZéroBot/Projet:Maintenance/Pages à supprimer')
         else:
             projectpage=pywikibot.Page(site, u'Projet:Maintenance/Pages à supprimer')
-        
+
         # Workaround
         # TO FIX
-        
+
   #      alltemplates=afdpage.templatesWithParams()
         #print alltemplates
-        
+
         listedlist=list()
-        
+
         sections_list = re.split('==.+==', afdpage.get())
         for section in sections_list:
             alltemplates_section = textlib.extract_templates_and_params(section)
             print 'alltemplates_section'
             print alltemplates_section
-            
+
             for tuple in alltemplates_section:
                 #pywikibot.output(u'Template %s' % tuple[0])
                 if tuple[0].upper() == u'L':
@@ -221,12 +221,12 @@ def main():
 
         if not len(config.debug_log):
             projectpage.put(newtext, u'Mise à jour de la liste de maintenance')
-        
+
 if __name__ == '__main__':
     try:
         main()
     except Exception, myexception:
-        almalog2.error(u'afd', u'%s %s'% (type(myexception), myexception.args))
+        _errorhandler.handle(myexception)
         raise
     finally:
         pywikibot.stopme()

@@ -32,7 +32,7 @@ import complements
 import re
 import urllib
 import _mysql
-import almalog2
+import _errorhandler
 
 class AnalyserBot:
 	database = None
@@ -347,7 +347,7 @@ if __name__ == '__main__':
 		main()
 	except Exception, myexception:
 		print type(myexception), myexception.args
-		almalog2.error(u'forum_nouveaux', u'%s %s'% (type(myexception), myexception.args))
+		_errorhandler.handle(myexception)
 		if not warn_Frakir():
 			pywikibot.output(u"Erreur : aucun message n'a pu être laissé à Frakir ([[fr:User talk:Frakir]]).")
 		raise

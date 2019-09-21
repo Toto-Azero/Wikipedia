@@ -1,17 +1,17 @@
 #!/usr/bin/python
 # -*- coding: utf-8  -*-
 
-import almalog2
+import _errorhandler
 import pywikibot
 from pywikibot import catlib, config, pagegenerators
 import codecs, re, _mysql
 
 def projectsort(item):
     return item[1]
-    
+
 def capitalizefirst(string):
     return string[0:1].capitalize()+string[1:]
-    
+
 def checkproject(project):
     #pywikibot.output(u'Getting correct project for %s' % project)
     if project==u'Droit/rattachement précis non vérifié':
@@ -38,8 +38,7 @@ def checkproject(project):
     projectpage=pywikibot.Page(pywikibot.getSite(), u'Projet:'+project)
 
     if not projectpage.exists():
-        pywikibot.output(u'Ignoring non-existent project : %s' % project)
-        almalog2.logs+=u'Ignoring non-existent project : %s' % project
+        _errorhandler.message(u'Ignoring non-existent project : %s' % project)
         project=None
     elif projectpage.isRedirectPage():
         targetproject=projectpage.getRedirectTarget()
@@ -48,21 +47,21 @@ def checkproject(project):
         else:
             pywikibot.output(u'Ignoring non-project target : %s (%d)' % (targetproject.title(), targetproject.namespace()))
             project=None
-    
+
     if project==u'Mode/Projet':
         project=u'Mode'
-        
+
     return project
-    
+
 def createcategories(addedprojects, debug, commandLogFile):
     # For tests
     #addedprojects.append('test_bot')
-    
+
     botName=config.usernames['wikipedia']['fr']
-    
+
     pywikibot.output('Create categories')
     pywikibot.output(str(addedprojects))
-    
+
     site = pywikibot.getSite()
     addedprojectscat=list()
     addedprojectscatpage=list()
@@ -73,13 +72,13 @@ def createcategories(addedprojects, debug, commandLogFile):
         if project!=addedprojectscat[-1]:
             addedprojectscat.append(project)
             addedprojectscatpage.append(pywikibot.Page(site, u'Catégorie:Traduction du Projet %s' % project))
-    
+
     pywikibot.output('------------------------------')
     pywikibot.output(str(addedprojectscatpage))
-    
-    catgenerator=iter(addedprojectscatpage) 
+
+    catgenerator=iter(addedprojectscatpage)
     catpreloadingGen=pagegenerators.PreloadingGenerator(catgenerator, 60)
-    
+
     index=0
     for addedprojectcatpage in catpreloadingGen:
         if not addedprojectcatpage.exists():
@@ -87,12 +86,12 @@ def createcategories(addedprojects, debug, commandLogFile):
             title = addedprojectcatpage.title()
             project = re.search(u'Traduction du Projet (.+)', title).group(1)
             #project=addedprojectscat[index]
-            
+
             main_cat_project = pywikibot.Page(site, u"Catégorie:Projet:%s" % project)
             main_cat_project_str = ''
             if main_cat_project.exists():
                 main_cat_project_str = main_cat_project.title(asLink=True)
-            
+
             text=u'{{Translation/Projet|%s}}\n[[Catégorie:Traduction par projet|%s]]\n%s' % (project, project, main_cat_project_str)
             if (debug==0) or (debug==3):
                 commandLogFile.write(u'******************************** %s ********************************\n' % addedprojectcatpage.title())
@@ -103,14 +102,14 @@ def createcategories(addedprojects, debug, commandLogFile):
                 newpage=pywikibot.Page(site, u'Utilisateur:'+botName+'/Test')
                 newpage.put(text, u'Création de [[:%s]] ([[%s]])' % (addedprojectcatpage.title(), project))
             commandLogFile.write(u'* Création de [[:%s]]\r\n' % addedprojectcatpage.title())
-          
+
         index=index+1
 
 def translationiterator(generator, num):
 
     site = pywikibot.getSite()
     preloadingGen=pagegenerators.PreloadingGenerator(generator, step=num)
-    
+
     index=1
     origlist=list()
     neworiglist=list()
@@ -123,14 +122,14 @@ def translationiterator(generator, num):
             newtext=parts[0]+u'Traduction/Suivi'
             parts=re.split(u'\|', parts[1])
             linkedpage1=pywikibot.Page(site, parts[3])
-            
+
             origlist.append(page)
             linkedlist.append(linkedpage1)
-            
-            
+
+
             if (index==num):
                 lpGen=iter(linkedlist)
-    
+
                 lpGenerator=pagegenerators.PreloadingGenerator(lpGen, step=num)
                 subindex=0
                 for linkedpage in lpGenerator:
@@ -143,22 +142,22 @@ def translationiterator(generator, num):
                         talklinkedlist.append(linkedpage)
                         neworiglist.append(origlist[subindex])
                     subindex=subindex+1
-                       
+
                 tlpGen=iter(talklinkedlist)
                 tlpGenerator=pagegenerators.PreloadingGenerator(tlpGen, step=num)
                 subindex=0
                 for talklinkedpage in tlpGenerator:
                     yield (neworiglist[subindex], talklinkedpage)
                     subindex=subindex+1
-                
+
                 index=1
                 origlist=list()
                 neworiglist=list()
                 linkedlist=list()
                 talklinkedlist=list()
-            else:    
+            else:
                 index=index+1
-                    
+
     lpGen=iter(linkedlist)
 
     lpGenerator=pagegenerators.PreloadingGenerator(lpGen, step=num)
@@ -173,19 +172,19 @@ def translationiterator(generator, num):
             talklinkedlist.append(linkedpage)
             neworiglist.append(origlist[subindex])
         subindex=subindex+1
-           
+
     tlpGen=iter(talklinkedlist)
     tlpGenerator=pagegenerators.PreloadingGenerator(tlpGen, step=num)
     subindex=0
     for talklinkedpage in tlpGenerator:
         yield (neworiglist[subindex], talklinkedpage)
         subindex=subindex+1
-                    
-            
+
+
 def main():
 
     botName=config.usernames['wikipedia']['fr']
-    
+
     categ=False
     debug=0
     debugwrite=False
@@ -194,7 +193,7 @@ def main():
     startindex=None
     finishindex=None
     db=False
-    
+
     for arg in pywikibot.handleArgs():
         if arg.startswith('-categ'):
             categ = True
@@ -219,16 +218,16 @@ def main():
         else:
             pywikibot.output(u'Syntax: translation.py [-categ[:lang]] [-debug]')
             exit()
-    
+
     # Get category
     site = pywikibot.getSite()
-    
+
     # Open logfile
     commandLogFilename = config.datafilepath('logs', 'translation.log')
     try:
         commandLogFile = codecs.open(commandLogFilename, 'a', 'utf-8')
     except IOError:
-        commandLogFile = codecs.open(commandLogFilename, 'w', 'utf-8')    
+        commandLogFile = codecs.open(commandLogFilename, 'w', 'utf-8')
 
     if not debug==0:
         # SPECIFIC PAGES
@@ -302,15 +301,15 @@ def main():
 
     if checkcat:
         pagesToProcess=pagegenerators.PreloadingGenerator(gen, 60)
-    else:   
+    else:
         pagesToProcess=translationiterator(gen, 60)
-   
-    
+
+
     allset=0
     processed=0
     total=0
     addedprojects=list()
-    
+
     dictionary=dict()
     for tuple in pagesToProcess:
         total=total+1
@@ -320,21 +319,21 @@ def main():
             projectpage=tuple[0]
             #linkedpage=tuple[1]
             linkedpage=pywikibot.Page(site, re.sub(u'/Traduction', u'', projectpage.title()))
-        
+
         #pywikibot.output(u'Processing %s and %s' % (projectpage.title(), linkedpage.title()))
 
         if checkcat:
             commandLogFile.write(u'Processing [[%s]]\n' % projectpage.title())
-        
+
         if projectpage.title() == u"Discussion:Interprétations politiques de Harry Potter/Traduction":
             commandLogFile.write(u'Escaping this page…')
             continue
-        
+
         pywikibot.output(u'Processing [[%s]]\n' % projectpage.title())
         #if not checkcat:
         #    pywikibot.output('**** Traitement de %s (et %s)' % (projectpage.title(), linkedpage.title()))
         projectlist=list()
-        
+
         # Templates broken
         #templates=page.templates()
         #for template in templates:
@@ -345,7 +344,7 @@ def main():
             parts=re.split(u'Traduction/Suivi', origtext, 1)
             newtext=parts[0]+u'Traduction/Suivi'
             parts=re.split(u'\|', parts[1])
-            
+
             existingprojects=list()
             for part in parts:
                 subparts=re.split(u'(.*)<!--', part)
@@ -372,7 +371,7 @@ def main():
                 for (templatepage, args) in linkedpage.templatesWithParams():
                     #pywikibot.output(templatetitle)
                     if templatepage.namespace()==10:
-                        templatetitle=templatepage.title(withNamespace=False)               
+                        templatetitle=templatepage.title(withNamespace=False)
                         if re.match(u'Wikiprojet ', templatetitle) or (re.match(u'Projet', templatetitle) and not re.match(u'Projet:Traduction', templatetitle)):
                             #pywikibot.output(templatetitle)
                             if templatepage.isRedirectPage():
@@ -398,7 +397,6 @@ def main():
                                     projectlist.append(projectname)
                                 else:
                                     pywikibot.output('... while processing %s' % projectpage.title())
-                                    almalog2.logs+=u'... while processing %s\n' % projectpage.title()
                         elif re.match(u'Évaluation multiprojet', templatetitle) or re.match(u'Wikiprojet', templatetitle):
                             projectflag=True
                             for arg in args:
@@ -414,8 +412,7 @@ def main():
                                 elif projectflag and not re.match(u'[Aa]vancement', arg) and not re.match(u'[Àà] faire', arg) and not re.match(u'[Rr]aison', arg) and not re.match(u'[Tt]odo', arg) and not re.match(u'WP1.0', arg) and not re.match(u'[Ll]umière', arg) and not re.match(u'[Ww]ikiconcours', arg):
                                     if re.search(u'=', arg):
                                         commandLogFile.write(u'::Potential issue %s in %s:\r\n' % (arg, projectpage.title()))
-                                        almalog2.logs+=(u'::Potential issue %s in %s:\n' % (arg, projectpage.title()))
-                                        pywikibot.output(u'::Potential issue %s in %s' % (arg, projectpage.title()))
+                                        _errorhandler.message(u'::Potential issue %s in %s:\n' % (arg, projectpage.title()))
                                     else:
                                         key = capitalizefirst(arg)
                                         if key in dictionary:
@@ -431,8 +428,8 @@ def main():
                                         projectflag=False
                                 else:
                                     projectflag=True
-                                
-                #pywikibot.output(u'LENS: %d %d' % (len(projectlist), len(existingprojects))) 
+
+                #pywikibot.output(u'LENS: %d %d' % (len(projectlist), len(existingprojects)))
                 listLength=len(projectlist)
                 projectlist.sort()
                 if listLength==len(existingprojects):
@@ -450,7 +447,7 @@ def main():
                 else:
                     projectChanges=True
 
-                #pywikibot.output(u'LENS: %d %d' % (len(projectlist), len(existingprojects)))            
+                #pywikibot.output(u'LENS: %d %d' % (len(projectlist), len(existingprojects)))
                 if projectChanges:
                     #pywikibot.output(u'Mise à jour des projets')
                     index = 1
@@ -462,7 +459,7 @@ def main():
                         else:
                             projecttext= projecttext + 'projet%d=%s\n|' % (index, project)
                         index = index+1
-                
+
                     inserted = False
                     comments=''
                     for part in parts:
@@ -496,24 +493,23 @@ def main():
                             newpage=pywikibot.Page(site, u'Utilisateur:'+botName+'/Test')
                             newpage.put(origtext, u'Texte original de [[%s]]' % projectpage.title())
                             newpage.put(finaltext, u'Nouveau texte de [[%s]]' % projectpage.title())
-                
+
             if (len(addedprojects)>=60):
                 createcategories(addedprojects, debug, commandLogFile)
                 addedprojects=list()
-    
+
     if (len(addedprojects)>0):
         createcategories(addedprojects, debug, commandLogFile)
 
-    
+
     #pywikibot.output(u'Total %d' % total)
-        
-    
+
+
 if __name__ == '__main__':
     try:
         main()
     except Exception, myexception:
-        almalog2.error(u'translation', u'%s %s'% (type(myexception), myexception.args))
+        _errorhandler.handle(myexception)
         raise
     finally:
-        almalog2.writelogs(u'translation')
         pywikibot.stopme()

@@ -18,7 +18,7 @@ Voir cette discussion :
 __version__ = '$Id: stats_bistro.py 120 2019-09-07 Framawiki $'
 #
 
-import almalog2
+import _errorhandler
 import pywikibot
 from pywikibot import config, page, textlib
 import locale, re
@@ -28,12 +28,12 @@ import complements
 
 def main():
 	locale.setlocale(locale.LC_ALL, 'fr_FR.utf8')
-		
+
 	site = pywikibot.Site()
 	now = datetime.now()
-	
+
 	page = pywikibot.Page(site, u"Wikipédia:Le Bistro/%i %s" % (int(now.strftime("%d")), now.strftime("%B %Y").decode('utf-8')))
-	
+
 	text = page.get()
 	text_part = text[text.index(u"\n== Aujourd'hui, dans Wikipédia =="):]
 	text_part_old = text_part
@@ -44,19 +44,17 @@ def main():
 	text_part = text_part.replace(u"{{Nombre d'articles géolocalisés sur Terre}}", u"{{subst:formatnum:{{subst:#expr:{{subst:PAGESINCATEGORY:Article géolocalisé sur Terre|R}}}}}}")
 	text_part = text_part.replace(u"{{Wikipédia:Le Bistro/Labels}}", u"{{subst:Wikipédia:Le Bistro/Labels}}")
 	text_part = text_part.replace(u"{{Wikipédia:Le Bistro/Test}}", u"{{subst:Wikipédia:Le Bistro/Test}}")
-	
+
 	text = text.replace(text_part_old, text_part)
-	
+
 	page.put(text, comment = u"Bot: Substitution des modèles afin de rendre fixes les statistiques fixes dans la section [[#Aujourd.27hui.2C_dans_Wikip.C3.A9dia|#Aujourd'hui, dans Wikipédia]]")
-	
-	
+
+
 if __name__ == '__main__':
     try:
         main()
     except Exception, myexception:
-        almalog2.error(u'stats_bistro', u'%s %s'% (type(myexception), myexception.args))
-        #print u'%s %s' % (type(myexception), myexception.args)
+        _errorhandler.handle(myexception)
         raise
     finally:
-        almalog2.writelogs(u'stats_bistro')
         pywikibot.stopme()

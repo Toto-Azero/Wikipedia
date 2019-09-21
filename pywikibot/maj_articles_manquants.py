@@ -17,7 +17,7 @@ __version__ = '$Id: maj_articles_manquants.py 0005 2016-02-06 22:24:45 (CET) Tot
 
 from maj_articles_recents import check_and_return_parameter
 from pywikibot import pagegenerators, config, textlib
-import almalog2
+import _errorhandler
 import pywikibot
 import pickle
 import md5
@@ -37,7 +37,7 @@ class BotArticlesManquants():
 		self.site = pywikibot.Site()
 		self.category = category
 		self.name = name
-		
+
 	def get_id(self, name=None):
 		"""
 		Renvoie l'id (de type int) de la catégorie rentrée dans la base.
@@ -58,51 +58,51 @@ class BotArticlesManquants():
 				name = self.category.title(asLink=False, withNamespace=False).replace(u'/Articles liés', '')
 			db.query('INSERT INTO am_correspondance VALUES ("%s", "%s", %i)' % (encode_sql(name), page_to_sql_string(self.category), last_id+1))
 			return last_id+1
-	
+
 	def update_tables(self):
 		"""
 		Met à jour les tables SQL am_recensement et am_denombrement.
 		"""
 		hash = md5.new(self.category.title().encode('utf-8')).hexdigest()
 		id = self.get_id(self.name)
-		
+
 		pywikibot.output("Hash for category is %s, id is %i" % (hash, id))
-		
+
 		db=MySQLdb.connect(host='tools-db', db='s51245__totoazero', read_default_file="/data/project/totoazero/replica.my.cnf")
-		
+
 		i = 0
 		total = self.category.categoryinfo['pages']
-		
+
 		begin_time = time.time()
 		time_remaining = 'calculating...'
 		for page in self.category.articles():
 			i +=1
 			page_sql = page_to_sql_string(page)
-			
+
 			db.query('DELETE FROM am_recensement WHERE page="%s"' % page_sql)
 			db.query('DELETE FROM am_denombrement WHERE page="%s"' % page_sql)
-			
+
 			count_total_links = 0
 			linked_list = page.linkedPages(namespaces=[0])
 			for linked_page in linked_list:
 				count_total_links += 1
-				
+
 				linked_page_sql = page_to_sql_string(linked_page)
 				db.query('SELECT page, existe FROM am_denombrement WHERE page="%s"' % linked_page_sql)
 				results = db.store_result()
 				result = results.fetch_row(how=1)
-				
+
 				#pywikibot.output("\t\tpage is %s", linked_page)
 				if not linked_page.exists():
 					db.query('INSERT INTO am_recensement VALUES ("%s", "%s", %i)' % (page_sql, linked_page_sql, id))
-					
+
 					#if result:
 					#	nb_liens = int(result[0]['nb_liens'])
 					#	nb_liens += 1
 					#	db.query('UPDATE am_denombrement SET nb_liens = %i WHERE page = "%s"' % (nb_liens, linked_page_sql))
-					#else:		
+					#else:
 					#	db.query('INSERT INTO am_denombrement VALUES ("%s", 1, FALSE)' % linked_page_sql)
-					
+
 					total_liens = len([p for p in linked_page.backlinks(namespaces=[0])])
 					pywikibot.output("\t\t*count for %s : %i" % (linked_page, total_liens))
 					if result:
@@ -117,30 +117,30 @@ class BotArticlesManquants():
 						total_liens = len([p for p in linked_page.backlinks(namespaces=[0])])
 						db.query('UPDATE am_denombrement SET nb_liens=%i, existe=TRUE WHERE page="%s"' % (total_liens, linked_page_sql))
 						pywikibot.output('\t\tupdate finished')
-						
+
 			now = time.time()
 			if now - begin_time > 60:
 				time_remaining = str(datetime.timedelta(seconds=now-begin_time)*(total-i)/i)
 			db.query('INSERT INTO am_denombrement VALUES ("%s", %i, TRUE)' % (page_sql, count_total_links))
-			
+
 			pywikibot.output(u'\tDid %s (%i out of %i; remaining time: %s)' % (page, i, total, time_remaining))#, end='\r')
-		
+
 		pywikibot.output(u"\tAll done for category %s" % category.title())
-	
+
 	def make_html(self):
 		"""
 		Crée un fichier HTML à partir des tables SQL, pour une consultation
 		plus fluide et moins consommatrice de ressources.
 		"""
 		id = self.get_id(self.name)
-		
+
 		db=MySQLdb.connect(host='tools-db', db='s51245__totoazero', read_default_file="/data/project/totoazero/replica.my.cnf")
 		db.query('SELECT am_denombrement.page, COUNT(*) as count_red, nb_liens, \
 (1 - COUNT(*)/nb_liens)*100 as avancement FROM am_denombrement \
 JOIN am_recensement ON am_recensement.page = am_denombrement.page \
 WHERE id = %(id)i GROUP BY page ORDER BY avancement DESC;' % {'id':id})
 		results = db.store_result()
-		
+
 		text = """
 <div class="bs-callout bs-callout-info" id="apercu">
 <h4>Aperçu : tableau d\'avancement page par page</h4>
@@ -169,7 +169,7 @@ Sont exclus les articles ne comportant pas de lien rouge.
 	</thead>
  	<tbody>
 """
-		
+
 		result = results.fetch_row(how=1)
 		while result:
 			result = result[0]
@@ -193,9 +193,9 @@ Sont exclus les articles ne comportant pas de lien rouge.
 """ % {'page': result['page'], 'count_red':result['count_red'], \
 	   'nb_liens':result['nb_liens'], 'avancement':result['avancement'],
 	   'classe':classe}
-			
+
 			result = results.fetch_row(how=1)
-			
+
 		text += """</tbody>
 </table>
 </fieldset>"""
@@ -207,7 +207,7 @@ FROM am_denombrement AS amd JOIN \
 ON page = page_rouge WHERE id = %(id)i AND existe=0 AND nb_liens >= 10 ORDER BY nb_liens DESC;' \
 % {'id':id})
 		results = db.store_result()
-		
+
 		text += """<div class="bs-callout bs-callout-info" id="demandes">
 <h4>Tableau des articles demandés</h4>
 Donne pour chaque page inexistante liée à au moins 10 autres pages de la catégorie :
@@ -233,7 +233,7 @@ Donne pour chaque page inexistante liée à au moins 10 autres pages de la caté
 		</tr>
 	</thead>
  	<tbody>"""
-		
+
 		result = results.fetch_row(how=1)
 		while result:
 			result = result[0]
@@ -247,21 +247,21 @@ Donne pour chaque page inexistante liée à au moins 10 autres pages de la caté
 """ % {'page': result['page'], 'count_in_cat':result['count_in_cat'], \
 	   'nb_liens':result['nb_liens'], 'percentage_in_cat':result['percentage_in_cat']}
 			result = results.fetch_row(how=1)
-		
+
 		text += """</tbody>
 </table>
 </fieldset>"""
-		
+
 		with open('/data/project/totoazero/public_html/articles_manquants/%i.html' % id, 'w') as f:
 			f.write(text)
-		
-		
+
+
 	def run(self):
-		pywikibot.output(u"Doing category %s" % self.category.title())				
+		pywikibot.output(u"Doing category %s" % self.category.title())
 		self.update_tables()
 		self.make_html()
 		return True
-				
+
 if __name__ == '__main__':
 	try:
 		#gen = pagegenerators.ReferringPageGenerator(self.modele, onlyTemplateInclusion = True)
@@ -273,7 +273,7 @@ if __name__ == '__main__':
 		text = main_page.get()
 		#text = text[text.index(begin):]
 		li = text.split('\n')
-		
+
 		gen = []
 		for item in li:
 			# item est du type "* [[:catégorie:truc|nom]]"
@@ -285,7 +285,7 @@ if __name__ == '__main__':
 			else:
 				name = None
 			gen.append((category, name))
-			
+
 		for couple in gen:
 			#try:
 			(category, name) = couple
@@ -297,8 +297,7 @@ if __name__ == '__main__':
 				pywikibot.output("An error occurred while doing page %s" % page.title())
 	except Exception, myexception:
 		#if not (test or dry):
-		pywikibot.output(u'%s %s'% (type(myexception), myexception.args))
-		#almalog2.error(u'maj_articles_manquants', u'%s %s'% (type(myexception), myexception.args))
+		_errorhandler.handle(myexception)
 		raise
 	finally:
 		pywikibot.stopme()
