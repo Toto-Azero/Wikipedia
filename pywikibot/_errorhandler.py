@@ -31,7 +31,7 @@ def initiate():
         with open(filename, 'r') as f:
             sentry.init(f.readline())
         with sentry.configure_scope() as scope:
-            scope.set_tag('script', sys.argv[0])
+            scope.set_tag('script', sys.argv[0].split('/')[-1])
 
 
 def add_tags(addtags):
