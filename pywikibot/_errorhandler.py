@@ -26,7 +26,7 @@ import sys
 def initiate():
     filename = os.path.join(os.path.expanduser('~'), '.pywikibot/sentry-key')
     if not os.path.exists(filename):
-        print(u'Sentry (envoi des erreurs) désactivé car clé introuvable')
+        print(u'Sentry (error reporting) disabled because no key found')
     else:
         with open(filename, 'r') as f:
             sentry.init(f.readline())
@@ -46,12 +46,17 @@ def add_tags(addtags):
             pass
 
 
+def print_event_id(event_id):
+    print(u'Event reported to Sentry as [%s]' % event_id)
+
+
 def handle(exception, level='error', addtags={}):
     print(u'Fatal %s:' % level)
 
     if sentry:
         add_tags(addtags)
-        sentry.capture_exception(exception)
+        event_id = sentry.capture_exception(exception)
+        print_event_id(event_id)
     else:
         print(traceback.format_exc())
 
@@ -61,13 +66,14 @@ def message(message, addtags={}):
 
     if sentry:
         add_tags(addtags)
-        sentry.capture_message(message)
+        event_id = sentry.capture_message(message)
+        print_event_id(event_id)
 
 
 try:
     import sentry_sdk
 except ImportError:
-    print(u'Sentry (envoi des erreurs) désactivé car sdk pas installé')
+    print(u'Sentry (error reporting) disabled because no sdk lib found')
     sentry = None
 else:
     sentry = sentry_sdk
