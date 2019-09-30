@@ -86,7 +86,7 @@ def pageIsListed(page, listedlist, templateList):
 
 
 def main():
-    _errorhandler.message('prout', addtags={'everywhere': 'true'})
+
     botName=config.usernames['wikipedia']['fr']
 
     templates=False

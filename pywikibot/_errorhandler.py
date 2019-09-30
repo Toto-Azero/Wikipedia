@@ -30,14 +30,20 @@ def initiate():
     else:
         with open(filename, 'r') as f:
             sentry.init(f.readline())
-        with sentry.configure_scope() as scope:
-            scope.set_tag('script', sys.argv[0].split('/')[-1])
 
 
 def add_tags(addtags):
-    with sentry.configure_scope() as tdict:
+    with sentry.configure_scope() as scope:
         for tag, value in addtags.items():
-            tdict.set_tag(tag, value)
+            scope.set_tag(tag, value)
+        
+        scope.set_tag('script', sys.argv[0].split('/')[-1])
+        
+        try:
+            import pywikibot
+            scope.set_tag('pwb_version', pywikibot.version.getversion())
+        except ImportError:
+            pass
 
 
 def handle(exception, level='error', addtags={}):
