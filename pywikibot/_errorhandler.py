@@ -46,12 +46,23 @@ def add_tags(addtags):
             pass
 
 
+def log_context(message, category=None):
+    if sentry:
+        # sentry enabled means production, so no need to log everything, only inform sentry in case error appends later
+        sentry.add_breadcrumb(message=message, category=category)
+    else:
+        if category:
+            print('%s: %s' % (category, message))
+        else:
+            print(message)
+
 def print_event_id(event_id):
     print(u'Event reported to Sentry as [%s]' % event_id)
 
 
-def handle(exception, level='error', addtags={}):
-    print(u'Fatal %s:' % level)
+def handle(exception, level='error', addtags={}, fatal=True):
+    if fatal:
+        print(u'Fatal %s:' % level)
 
     if sentry:
         add_tags(addtags)

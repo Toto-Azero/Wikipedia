@@ -228,6 +228,7 @@ ORDER BY count_changes DESC;" % {
         'minimum_contributeurs':self.minimum_contributeurs,
         'bots_inclus_str':self.bots_inclus_str,
         'namespaces': self.namespaces}
+		_errorhandler.log_context(query, category='sql')
 
                 if self.nbMax > 0:
                         query = query[:-1] + " LIMIT %i;" % self.nbMax
@@ -404,12 +405,12 @@ if __name__ == '__main__':
                                 bot = BotArticlesChauds(page, modele, dry)
                                 if not bot.run():
                                         pywikibot.output(u'Page %s not done' % page.title())
-                        except Exception:
-                                pywikibot.output(traceback.format_exc())
+                        except Exception, ex:
                                 pywikibot.output("An error occurred while doing page %s" % page.title())
-        except Exception, myexception:
+				_errorhandler.handle(ex, fatal=False, addtags={'page': page})
+        except Exception, ex:
                 if not (test or dry):
-                        _errorhandler.handle(myexception)
+                        _errorhandler.handle(ex)
                 raise
         finally:
                 pywikibot.stopme()
