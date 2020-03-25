@@ -78,7 +78,7 @@ class BotArticlesChauds():
                                 break
 
                 if not template_in_use:
-                        pywikibot.output(u"Aucun modèle {{%s}} détecté sur la page %s" % (modele.title(asLink=False), main_page.title()))
+                        pywikibot.output(u"Aucun modèle {{%s}} détecté sur la page %s" % (modele.title(asLink=False), self.main_page.title()))
                         return False
 
                 titre_categorie = check_and_return_parameter(template_in_use, u'catégorie')
