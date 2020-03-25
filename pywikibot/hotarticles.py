@@ -213,7 +213,7 @@ class BotArticlesChauds():
                 rev_id = int(result['rev_id'])
 
                 query = "SELECT page_id, page_title, COUNT(*) AS count_changes, SUM(rc_minor) \
-AS count_minor, COUNT(DISTINCT rc_actor) as nb_users, SUM(rc_new_len - rc_old_len) as diff \
+AS count_minor, COUNT(DISTINCT rc_actor) as nb_users, SUM(COALESCE(rc_new_len, 0) - COALESCE(rc_old_len, 0)) as diff \
 FROM recentchanges \
 JOIN (SELECT page_id, page_title FROM categorylinks \
 JOIN page ON page_id=cl_from AND page_namespace IN %(namespaces)s \
