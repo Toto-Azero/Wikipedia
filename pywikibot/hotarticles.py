@@ -78,7 +78,7 @@ class BotArticlesChauds():
                                 break
 
                 if not template_in_use:
-                        pywikibot.output(u"Aucun modèle {{%s}} détecté sur la page %s" % (modele.title(asLink=False), self.main_page.title()))
+                        _errorhandler.message(u"Aucun modèle {{%s}} détecté sur la page" % modele.title(asLink=False), addtags={'page': self.main_page})
                         return False
 
                 titre_categorie = check_and_return_parameter(template_in_use, u'catégorie')
@@ -86,80 +86,80 @@ class BotArticlesChauds():
                         return False
                 self.cat = pywikibot.Category(site, titre_categorie)
                 if not self.cat.exists():
-                        pywikibot.output(u"Erreur : la catégorie n'existe pas")
+                        _errorhandler.message(u"Erreur : la catégorie n'existe pas", addtags={'page': self.main_page})
                         return False
 
                 self.nbMax = check_and_return_parameter(template_in_use, 'nbMax', -1)
                 try:
                         self.nbMax = int(self.nbMax)
                 except:
-                        pywikibot.output(u'Erreur : nbMax incorrect')
+                        _errorhandler.message(u'Erreur : nbMax incorrect', addtags={'page': self.main_page})
                         return False
 
                 self.minimum = check_and_return_parameter(template_in_use, 'minimum', '10')
                 try:
                         self.minimum = int(self.minimum)
                 except:
-                        pywikibot.output(u'Erreur : minimum incorrect')
+                        _errorhandler.message(u'Erreur : minimum incorrect', addtags={'page': self.main_page})
                         return False
 
                 self.actions = check_and_return_parameter(template_in_use, 'actions', '0,1,3')
                 try:
                         [int(k) for k in self.actions.split(',')]
                 except:
-                        pywikibot.output(u'Erreur : des actions spécifiées ne sont pas des entiers')
+                        _errorhandler.message(u'Erreur : des actions spécifiées ne sont pas des entiers', addtags={'page': self.main_page})
                         return False
 
                 self.delai = check_and_return_parameter(template_in_use, u'délai', '7')
                 try:
                         self.delai = int(self.delai)
                         if self.delai <= 0:
-                                pywikibot.output(u'Erreur : délai négatif')
+                                _errorhandler.message(u'Erreur : délai négatif', addtags={'page': self.main_page})
                                 return False
                 except:
-                        pywikibot.output(u'Erreur : délai incorrect')
+                        _errorhandler.message(u'Erreur : délai incorrect', addtags={'page': self.main_page})
                         return False
 
                 self.orange = check_and_return_parameter(template_in_use, 'limite_orange', '20')
                 try:
                         self.orange = int(self.orange)
                 except:
-                        pywikibot.output(u'Erreur : orange incorrect')
+                        _errorhandler.message(u'Erreur : orange incorrect', addtags={'page': self.main_page})
                         return False
 
                 self.rouge = check_and_return_parameter(template_in_use, 'limite_rouge', '40')
                 try:
                         self.rouge = int(self.rouge)
                 except:
-                        pywikibot.output(u'Erreur : rouge incorrect')
+                        _errorhandler.message(u'Erreur : rouge incorrect', addtags={'page': self.main_page})
                         return False
 
                 self.mineures = check_and_return_parameter(template_in_use, 'mineures', '0')
                 try:
                         self.mineures = int(self.mineures)
                 except:
-                        pywikibot.output(u'Erreur : mineures incorrect')
+                        _errorhandler.message(u'Erreur : mineures incorrect', addtags={'page': self.main_page})
                         return False
 
                 self.contributeurs = check_and_return_parameter(template_in_use, 'contributeurs', '0')
                 try:
                         self.contributeurs = int(self.contributeurs)
                 except:
-                        pywikibot.output(u'Erreur : contributeurs incorrect')
+                        _errorhandler.message(u'Erreur : contributeurs incorrect', addtags={'page': self.main_page})
                         return False
 
                 self.minimum_contributeurs = check_and_return_parameter(template_in_use, 'minimum_contributeurs', '1')
                 try:
                         self.minimum_contributeurs = int(self.minimum_contributeurs)
                 except:
-                        pywikibot.output(u'Erreur : minimum_contributeurs incorrect')
+                        _errorhandler.message(u'Erreur : minimum_contributeurs incorrect', addtags={'page': self.main_page})
                         return False
 
                 self.bots_inclus = check_and_return_parameter(template_in_use, 'bots_inclus', '1')
                 try:
                         self.bots_inclus = int(self.bots_inclus)
                 except:
-                        pywikibot.output(u'Erreur : bots_inclus incorrect')
+                        _errorhandler.message(u'Erreur : bots_inclus incorrect', addtags={'page': self.main_page})
                         return False
 
                 self.bots_inclus_str = ''
@@ -171,21 +171,21 @@ class BotArticlesChauds():
                 try:
                         self.transclusion = int(self.transclusion)
                 except:
-                        pywikibot.output(u'Erreur : transclusion incorrect')
+                        _errorhandler.message(u'Erreur : transclusion incorrect', addtags={'page': self.main_page})
                         return False
 
                 self.diff = check_and_return_parameter(template_in_use, 'diff', '0')
                 try:
                         self.diff = int(self.diff)
                 except:
-                        pywikibot.output(u'Erreur : diff incorrect')
+                        _errorhandler.message(u'Erreur : diff incorrect', addtags={'page': self.main_page})
                         return False
 
                 self.lien_historique = check_and_return_parameter(template_in_use, 'lien_historique', '0')
                 try:
                         self.lien_historique = int(self.lien_historique)
                 except:
-                        pywikibot.output(u'Erreur : diff incorrect')
+                        _errorhandler.message(u'Erreur : diff incorrect', addtags={'page': self.main_page})
                         return False
 
                 self.namespaces = check_and_return_parameter(template_in_use, 'namespaces', '0')
@@ -195,7 +195,7 @@ class BotArticlesChauds():
                         # and preformat them for the SQL request
                         self.namespaces = "(" + ",".join([str(int(k)) for k in self.namespaces.split(",")]) + ")"
                 except:
-                        pywikibot.output(u'Erreur : namespaces incorrect')
+                        _errorhandler.message(u'Erreur : namespaces incorrect', addtags={'page': self.main_page})
                         return False
 
                 return True
@@ -406,7 +406,7 @@ if __name__ == '__main__':
                                 if not bot.run():
                                         pywikibot.output(u'Page %s not done' % page.title())
                         except Exception, ex:
-                                pywikibot.output("An error occurred while doing page %s" % page.title())
+                                pywikibot.output("Error occurred while doing page %s" % page.title())
 				_errorhandler.handle(ex, fatal=False, addtags={'page': page})
         except Exception, ex:
                 if not (test or dry):

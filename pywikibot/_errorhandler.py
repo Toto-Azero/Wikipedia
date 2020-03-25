@@ -73,7 +73,7 @@ def handle(exception, level='error', addtags={}, fatal=True):
 
 
 def message(message, addtags={}):
-    print(u'Message: %s' % message)
+    print(u'Message: %s (%s)' % (message, addtags))
 
     if sentry:
         add_tags(addtags)
