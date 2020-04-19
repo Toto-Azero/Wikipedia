@@ -52,8 +52,9 @@ class PutQueue:
 	def safe_put(self, page, text, comment):
 		try:
 			page.put(text, comment = comment)
-		except pywikibot.SpamfilterError as errorBlacklist:
-			text.replace(errorBlacklist.url, "<nowiki>%s</nowiki>" % errorBlacklist)
+		except pywikibot.SpamblacklistError as errorBlacklist:
+			for url in errorBlacklist.url.split(', '):
+				text.replace(url, "<nowiki>%s</nowiki>" % url)
 			self.site.unlock_page(page) # Strange bug, page locked after the error
 			page.put(text, comment = comment)
 

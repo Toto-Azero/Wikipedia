@@ -298,7 +298,7 @@ class RandomBot:
 						pywikibot.output(
 							u'Skipping %s because of edit conflict'
 							% (page.title()))
-					except pywikibot.SpamfilterError, error:
+					except pywikibot.SpamblacklistError, error:
 						pywikibot.output(
 u'Cannot change %s because of spam blacklist entry %s'
 							% (page.title(), error.url))
@@ -336,7 +336,7 @@ u'Cannot change %s because of spam blacklist entry %s'
 						pywikibot.output(
 							u'Skipping %s because of edit conflict'
 							% (page.title()))
-					except pywikibot.SpamfilterError, error:
+					except pywikibot.SpamblacklistError, error:
 						pywikibot.output(
 u'Cannot change %s because of spam blacklist entry %s'
 							% (page.title(), error.url))

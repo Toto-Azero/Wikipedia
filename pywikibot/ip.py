@@ -156,7 +156,7 @@ class IPBot:
 					pywikibot.output(u"Page %s is locked; skipping." % page.title(asLink=True))
 				except pywikibot.EditConflict:
 					pywikibot.output(u'Skipping %s because of edit conflict' % (page.title()))
-				except pywikibot.SpamfilterError, error:
+				except pywikibot.SpamblacklistError, error:
 					pywikibot.output(u'Cannot change %s because of spam blacklist entry %s' % (page.title(), error.url))
 
 							
