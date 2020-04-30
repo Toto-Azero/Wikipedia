@@ -349,10 +349,15 @@ ORDER BY count_changes DESC;" % {
                 new_text += "\n"
                 new_text += self.build_table()
                 new_text += self.matchFin
-                new_text += text[text.index(self.matchFin)+len(self.matchFin):]
+                try:
+                        new_text += text[text.index(self.matchFin)+len(self.matchFin):]
+                except ValueError:
+                        _errorhandler.message('Tags not found in page content', addtags={'page': self.main_page.title()})
+                        return
 
                 if not self.dry:
                         page.put(new_text, self.comment)
+                        return True
                 else:
                         pywikibot.output(new_text)
 
@@ -362,8 +367,7 @@ ORDER BY count_changes DESC;" % {
                         pywikibot.output(u"Erreur lors de la récupération des paramètres")
                         return False
 
-                self.edit_page()
-                return True
+                return self.edit_page()
 
 if __name__ == '__main__':
         try:
