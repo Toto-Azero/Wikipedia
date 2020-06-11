@@ -29,7 +29,7 @@ import datetime
 import traceback
 
 def encode_sql(string):
-        return string.replace('"', '\\"').replace(' ', '_').encode('utf-8')
+        return string.replace('"', '\\"').replace("'", "\\'").replace(' ', '_').encode('utf-8')
 
 def page_to_sql_string(page, asLink = False, withNamespace=False):
         return encode_sql(page.title(asLink = asLink, withNamespace = withNamespace))
