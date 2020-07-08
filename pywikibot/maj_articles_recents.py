@@ -165,7 +165,7 @@ def main():
 			#####################
 			### Récupération des informations sur la page
 			#####################
-			templates = textlib.extract_templates_and_params(text)
+			templates = textlib.extract_templates_and_params_regex(text)
 			template_in_use = None
 			for tuple in templates:
 				if tuple[0] != u'Articles récents':
